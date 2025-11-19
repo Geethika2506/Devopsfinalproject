@@ -1,18 +1,16 @@
-from fastapi import APIRouter, Depends
+# app/routers/orders.py
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app import models, schemas
+from app import schemas, crud
 from app.database import get_db
+
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
+
 @router.post("/from-cart/{cart_id}", response_model=schemas.Order)
 def create_order(cart_id: int, db: Session = Depends(get_db)):
-    cart = db.query(models.Cart).get(cart_id)
-
-    total = sum(item.product.price * item.quantity for item in cart.items)
-
-    order = models.Order(user_id=cart.user_id, total=total)
-    db.add(order)
-    db.commit()
-    db.refresh(order)
-    return order
+	order = crud.create_order_from_cart(db, cart_id)
+	if not order:
+		raise HTTPException(404, "Cart not found or empty")
+	return order

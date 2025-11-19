@@ -1,16 +1,27 @@
 # app/database.py
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
+
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+
 if DATABASE_URL:
-    # e.g. mssql+pyodbc://user:password@server:1433/databasename?driver=ODBC+Driver+18+for+SQL+Server
     engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 else:
-    # fallback local sqlite for MVP/tests
-    sqlite_url = "sqlite:///./data.db"
-    engine = create_engine(sqlite_url, connect_args={"check_same_thread": False})
+    # Local sqlite fallback for quick local dev/tests
+    engine = create_engine("sqlite:///./data.db", connect_args={"check_same_thread": False})
+
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+
+# dependency for FastAPI
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
