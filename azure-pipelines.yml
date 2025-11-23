@@ -1,0 +1,64 @@
+# azure-pipelines.yml
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  imageName: 'sddo-mvp'
+  azureSubscription: '<YOUR_AZURE_RESOURCE_MANAGER_SERVICE_CONNECTION_NAME>'  # set in pipeline variables
+  acrName: '<YOUR_ACR_NAME>'  # e.g. myacrregistry
+  resourceGroup: '<YOUR_RESOURCE_GROUP>'
+  webAppName: '<YOUR_WEBAPP_NAME>'
+
+stages:
+- stage: Build
+  displayName: Build & Test
+  jobs:
+  - job: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.11'
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+      displayName: 'Install dependencies'
+    - script: |
+        pytest -q
+      displayName: 'Run tests'
+    - script: |
+        docker build -t $(acrName).azurecr.io/$(imageName):$(Build.BuildId) .
+      displayName: 'Build Docker image'
+    - task: Docker@2
+      displayName: 'Push image to ACR'
+      inputs:
+        command: login
+        containerRegistry: '$(acrName)ServiceConnection' # configure service connection
+    - task: Docker@2
+      displayName: 'Push image'
+      inputs:
+        command: push
+        repository: '$(acrName).azurecr.io/$(imageName)'
+        tags: '$(Build.BuildId)'
+
+- stage: Deploy
+  displayName: Deploy to Azure
+  dependsOn: Build
+  jobs:
+  - deployment: DeployWeb
+    displayName: Deploy Web App
+    environment: 'production'
+    pool:
+      vmImage: 'ubuntu-latest'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appName: '$(webAppName)'
+              containers: '$(acrName).azurecr.io/$(imageName):$(Build.BuildId)'
