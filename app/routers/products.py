@@ -1,43 +1,71 @@
 # app/routers/products.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app import schemas, crud
 from app.database import get_db
-from app.services.external_products import fetch_external_products
-
+from app.auth import get_current_user
+import httpx
+from typing import List
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
+# Cache for external products
+_products_cache = None
 
-@router.get("/", response_model=list[schemas.Product])
-def read_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-	return crud.list_products(db, skip=skip, limit=limit)
+async def fetch_external_products():
+    """Fetch products from Fake Store API"""
+    global _products_cache
+    
+    if _products_cache is not None:
+        return _products_cache
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get("https://fakestoreapi.com/products")
+            if response.status_code == 200:
+                products = response.json()
+                # Transform to match our schema
+                _products_cache = [
+                    {
+                        "id": p["id"],
+                        "name": p["title"],
+                        "description": p["description"],
+                        "price": float(p["price"]),
+                        "stock": 50,  # Fake store API doesn't have stock
+                        "image": p.get("image", "")
+                    }
+                    for p in products
+                ]
+                return _products_cache
+    except Exception as e:
+        print(f"Error fetching external products: {e}")
+    
+    return []
 
 
-@router.get("/{product_id}", response_model=schemas.Product)
-def read_product(product_id: int, db: Session = Depends(get_db)):
-	p = crud.get_product(db, product_id)
-	if not p:
-		raise HTTPException(status_code=404, detail="Product not found")
-	return p
+@router.get("/", response_model=List[dict])
+async def read_products(skip: int = 0, limit: int = 100):
+    """Get products from external API"""
+    products = await fetch_external_products()
+    return products[skip:skip+limit]
 
 
-@router.post("/", response_model=schemas.Product)
-def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
-	return crud.create_product(db, product)
+@router.get("/{product_id}", response_model=dict)
+async def read_product(product_id: int):
+    """Get single product"""
+    products = await fetch_external_products()
+    product = next((p for p in products if p["id"] == product_id), None)
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return product
 
 
-@router.get("/external")
-def external_products():
-	"""Return products from FakeStoreAPI (no auth). Useful for demo and seeding."""
-	return fetch_external_products()
-
-
-@router.post("/import-external", response_model=list[schemas.Product])
-def import_external(db: Session = Depends(get_db)):
-	data = fetch_external_products()
-	created = []
-	for item in data:
-		p = schemas.ProductCreate(title=item.get('title'), description=item.get('description'), price=float(item.get('price', 0)), image_url=item.get('image'))
-		created.append(crud.create_product(db, p))
-	return created
+# Optional: Keep ability to add custom products to database
+@router.post("/custom", response_model=schemas.Product, status_code=status.HTTP_201_CREATED)
+def create_custom_product(
+    product: schemas.ProductCreate,
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
+    """Add custom products to database (requires authentication)"""
+    return crud.create_product(db=db, product=product)
