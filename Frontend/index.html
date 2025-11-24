@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuxeStore - Full Stack Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- CSS Styles --- */
+        :root {
+            --primary: #0f172a;
+            --text-main: #1e293b;
+            --text-light: #64748b;
+            --bg-light: #f1f5f9;
+            --white: #ffffff;
+            --accent: #3b82f6;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--white); color: var(--text-main); display: flex; flex-direction: column; min-height: 100vh; }
+
+        /* Layout Utilities */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; width: 100%; }
+        .hidden { display: none !important; }
+        
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-primary { background-color: var(--primary); color: var(--white); }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-outline { border: 1px solid #e2e8f0; background: transparent; color: var(--text-main); }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-block { width: 100%; }
+
+        /* Navbar */
+        header { padding: 20px 0; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; background: rgba(255,255,255,0.95); z-index: 100; backdrop-filter: blur(5px); }
+        nav { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: 700; color: var(--primary); text-decoration: none; cursor: pointer; }
+        .nav-links { display: flex; gap: 30px; list-style: none; }
+        .nav-links li { cursor: pointer; font-weight: 500; font-size: 0.95rem; }
+        .nav-icons { display: flex; align-items: center; gap: 20px; }
+        .icon-btn { background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--text-main); position: relative; }
+        .cart-badge { position: absolute; top: -8px; right: -8px; background-color: var(--primary); color: white; font-size: 0.7rem; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+        /* Views */
+        .view-section { padding: 40px 0; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Home View Styles */
+        .hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
+        .filter-bar { background-color: var(--bg-light); display: inline-flex; padding: 5px; border-radius: 8px; margin-bottom: 40px; flex-wrap: wrap; gap: 5px; }
+        .filter-btn { border: none; background: transparent; padding: 8px 16px; cursor: pointer; font-weight: 500; color: var(--text-light); border-radius: 6px; }
+        .filter-btn.active { background-color: var(--white); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-weight: 600; }
+        
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 30px; }
+        .product-card { border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden; background-color: #f8fafc; display: flex; flex-direction: column; transition: transform 0.2s; }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .image-container { height: 250px; padding: 30px; display: flex; align-items: center; justify-content: center; background-color: #f8fafc; position: relative; }
+        .product-image { max-width: 100%; max-height: 100%; object-fit: contain; mix-blend-mode: multiply; }
+        .product-info { padding: 20px; background-color: var(--white); flex-grow: 1; display: flex; flex-direction: column; border-top: 1px solid #f1f5f9; }
+        .product-category { font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; margin-bottom: 5px; }
+        .product-title { font-size: 1rem; font-weight: 600; margin-bottom: 10px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .price-row { margin-top: auto; display: flex; justify-content: space-between; align-items: center; }
+        .price { font-weight: 700; font-size: 1.1rem; }
+        .add-btn { background-color: var(--primary); color: white; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+        .add-btn:active { transform: scale(0.9); }
+
+        /* Cart View Styles */
+        .cart-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 40px; }
+        .cart-item { display: flex; align-items: center; gap: 20px; padding: 20px 0; border-bottom: 1px solid #e2e8f0; }
+        .cart-img { width: 80px; height: 80px; object-fit: contain; mix-blend-mode: multiply; }
+        .cart-details { flex-grow: 1; }
+        .qty-control { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .qty-btn { width: 25px; height: 25px; border: 1px solid #cbd5e1; background: white; cursor: pointer; border-radius: 4px; }
+        .summary-card { background-color: #f8fafc; padding: 25px; border-radius: 12px; height: fit-content; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 15px; color: var(--text-light); }
+        .summary-total { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-weight: 700; color: var(--primary); font-size: 1.2rem; }
+
+        /* Login & Form Styles */
+        .auth-container { max-width: 400px; margin: 40px auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; text-align: center; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; font-weight: 500; }
+        .form-input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; }
+        .form-input:focus { border-color: var(--primary); }
+        
+        /* Checkout Styles */
+        .checkout-form { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .full-width { grid-column: span 2; }
+
+        /* Toast Notification */
+        #toast { position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white; padding: 12px 24px; border-radius: 8px; transform: translateY(100px); transition: transform 0.3s; z-index: 1000; }
+        #toast.show { transform: translateY(0); }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .cart-layout { grid-template-columns: 1fr; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo" onclick="router.navigate('home')">LuxeStore</div>
+                <ul class="nav-links">
+                    <li onclick="router.navigate('home')">Shop</li>
+                    <li onclick="router.filterCat('electronics')">Electronics</li>
+                    <li onclick="router.filterCat('jewelery')">Jewelry</li>
+                </ul>
+                <div class="nav-icons">
+                    <button class="icon-btn" onclick="auth.toggleAuth()">
+                        <i class="far fa-user" id="user-icon"></i>
+                    </button>
+                    <button class="icon-btn" onclick="router.navigate('cart')">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-badge" id="cart-count">0</span>
+                    </button>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <!-- HOME VIEW -->
+        <section id="view-home" class="view-section">
+            <div class="hero">
+                <h1>Shop Our Collection</h1>
+                <p style="color:var(--text-light); margin-bottom: 20px;">Discover amazing products across all categories</p>
+            </div>
+
+            <div class="filter-bar">
+                <button class="filter-btn active" onclick="filterProducts('all', this)">All</button>
+                <button class="filter-btn" onclick="filterProducts('electronics', this)">Electronics</button>
+                <button class="filter-btn" onclick="filterProducts('jewelery', this)">Jewelry</button>
+                <button class="filter-btn" onclick="filterProducts('men\'s clothing', this)">Men</button>
+                <button class="filter-btn" onclick="filterProducts('women\'s clothing', this)">Women</button>
+            </div>
+
+            <div id="product-grid" class="product-grid">
+                <div style="grid-column: span 3; text-align: center; padding: 40px;">Loading products...</div>
+            </div>
+        </section>
+
+        <!-- CART VIEW -->
+        <section id="view-cart" class="view-section hidden">
+            <h2>Your Shopping Cart</h2>
+            <br>
+            <div class="cart-layout">
+                <div id="cart-items-container">
+                    <!-- Items injected here -->
+                </div>
+                
+                <div class="summary-card">
+                    <h3>Order Summary</h3>
+                    <br>
+                    <div class="summary-row"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+                    <div class="summary-row"><span>Tax (5%)</span><span id="tax">$0.00</span></div>
+                    <div class="summary-row"><span>Shipping</span><span>Free</span></div>
+                    <div class="summary-total"><span>Total</span><span id="total">$0.00</span></div>
+                    <br>
+                    <button class="btn btn-primary btn-block" onclick="router.navigate('checkout')">Proceed to Checkout</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- CHECKOUT VIEW -->
+        <section id="view-checkout" class="view-section hidden">
+            <h2>Secure Checkout</h2>
+            <br>
+            <div class="cart-layout">
+                <div>
+                    <form id="payment-form" onsubmit="processPayment(event)">
+                        <h3>Shipping Information</h3>
+                        <br>
+                        <div class="checkout-form">
+                            <div class="form-group full-width">
+                                <label>Full Name</label>
+                                <input type="text" class="form-input" required placeholder="John Doe">
+                            </div>
+                            <div class="form-group full-width">
+                                <label>Address</label>
+                                <input type="text" class="form-input" required placeholder="123 Main St">
+                            </div>
+                            <div class="form-group">
+                                <label>City</label>
+                                <input type="text" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Zip Code</label>
+                                <input type="text" class="form-input" required>
+                            </div>
+                        </div>
+                        <br>
+                        <h3>Payment Details</h3>
+                        <br>
+                        <div class="checkout-form">
+                            <div class="form-group full-width">
+                                <label>Card Number</label>
+                                <input type="text" class="form-input" placeholder="0000 0000 0000 0000" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Expiry</label>
+                                <input type="text" class="form-input" placeholder="MM/YY" required>
+                            </div>
+                            <div class="form-group">
+                                <label>CVC</label>
+                                <input type="text" class="form-input" placeholder="123" required>
+                            </div>
+                        </div>
+                        <br>
+                        <button type="submit" class="btn btn-primary btn-block">Pay Now</button>
+                    </form>
+                </div>
+                <div class="summary-card">
+                    <h3>In Your Bag</h3>
+                    <div id="checkout-summary-items"></div>
+                    <div class="summary-total" style="border-top:none; margin-top:10px;">
+                        <span>Total to Pay</span>
+                        <span id="checkout-total">$0.00</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LOGIN VIEW -->
+        <section id="view-login" class="view-section hidden">
+            <div class="auth-container">
+                <h2 style="margin-bottom: 10px;">Welcome Back</h2>
+                <p style="color: var(--text-light); margin-bottom: 20px;">Login to access your account</p>
+                
+                <form onsubmit="auth.login(event)">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" class="form-input" value="user@example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" class="form-input" value="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                </form>
+                <br>
+                <p style="font-size: 0.8rem; color: var(--text-light);">Demo: Use any credentials to login.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="toast">Item added to cart!</div>
+
+    <script>
+        // --- GLOBAL STATE ---
+        let state = {
+            products: [],
+            cart: JSON.parse(localStorage.getItem('luxeCart')) || [],
+            user: JSON.parse(localStorage.getItem('luxeUser')) || null
+        };
+
+        // --- API HANDLING ---
+        const api = {
+            fetchProducts: async () => {
+                try {
+                    const res = await fetch('https://fakestoreapi.com/products');
+                    state.products = await res.json();
+                    ui.renderProducts(state.products);
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        };
+
+        // --- ROUTER ---
+        const router = {
+            navigate: (viewId) => {
+                // Hide all sections
+                document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+                // Show target section
+                document.getElementById(`view-${viewId}`).classList.remove('hidden');
+                
+                // Logic when entering specific views
+                if (viewId === 'cart') cart.render();
+                if (viewId === 'checkout') {
+                    if (!state.user) {
+                        router.navigate('login');
+                        ui.showToast('Please login to checkout');
+                        return;
+                    }
+                    cart.renderCheckout();
+                }
+                window.scrollTo(0,0);
+            },
+            filterCat: (cat) => {
+                router.navigate('home');
+                // Find button and click it programmatically to reuse filter logic
+                // (Simplified for demo, ideally separate logic)
+                const btn = Array.from(document.querySelectorAll('.filter-btn'))
+                    .find(b => b.textContent.toLowerCase().includes(cat.split(' ')[0]));
+                if(btn) filterProducts(cat, btn);
+            }
+        };
+
+        // --- AUTHENTICATION ---
+        const auth = {
+            toggleAuth: () => {
+                if (state.user) auth.logout();
+                else router.navigate('login');
+            },
+            login: (e) => {
+                e.preventDefault();
+                // Simulate Backend Login
+                state.user = { name: "Demo User", email: "user@example.com" };
+                localStorage.setItem('luxeUser', JSON.stringify(state.user));
+                ui.updateAuthUI();
+                router.navigate('home');
+                ui.showToast(`Welcome back, ${state.user.name}`);
+            },
+            logout: () => {
+                state.user = null;
+                localStorage.removeItem('luxeUser');
+                ui.updateAuthUI();
+                router.navigate('home');
+                ui.showToast('Logged out successfully');
+            }
+        };
+
+        // --- CART LOGIC ---
+        const cart = {
+            add: (productId) => {
+                const product = state.products.find(p => p.id === productId);
+                const existing = state.cart.find(item => item.id === productId);
+
+                if (existing) {
+                    existing.qty++;
+                } else {
+                    state.cart.push({ ...product, qty: 1 });
+                }
+                cart.save();
+                ui.updateCartCount();
+                ui.showToast('Added to cart');
+            },
+            remove: (productId) => {
+                state.cart = state.cart.filter(item => item.id !== productId);
+                cart.save();
+                cart.render();
+                ui.updateCartCount();
+            },
+            changeQty: (productId, change) => {
+                const item = state.cart.find(item => item.id === productId);
+                if (item) {
+                    item.qty += change;
+                    if (item.qty <= 0) cart.remove(productId);
+                    else {
+                        cart.save();
+                        cart.render();
+                    }
+                }
+            },
+            save: () => {
+                localStorage.setItem('luxeCart', JSON.stringify(state.cart));
+            },
+            calculate: () => {
+                const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                const tax = subtotal * 0.05;
+                return { subtotal, tax, total: subtotal + tax };
+            },
+            render: () => {
+                const container = document.getElementById('cart-items-container');
+                if (state.cart.length === 0) {
+                    container.innerHTML = '<div style="padding:20px; text-align:center">Your cart is empty. <a onclick="router.navigate(\'home\')" style="color:var(--accent); cursor:pointer">Go Shop</a></div>';
+                    document.getElementById('subtotal').innerText = '$0.00';
+                    document.getElementById('total').innerText = '$0.00';
+                    return;
+                }
+
+                container.innerHTML = state.cart.map(item => `
+                    <div class="cart-item">
+                        <img src="${item.image}" class="cart-img" alt="${item.title}">
+                        <div class="cart-details">
+                            <h4 style="font-size:0.9rem; margin-bottom:5px;">${item.title}</h4>
+                            <div style="color:var(--primary); font-weight:700">$${item.price}</div>
+                            <div class="qty-control">
+                                <button class="qty-btn" onclick="cart.changeQty(${item.id}, -1)">-</button>
+                                <span style="font-size:0.9rem; width:20px; text-align:center">${item.qty}</span>
+                                <button class="qty-btn" onclick="cart.changeQty(${item.id}, 1)">+</button>
+                            </div>
+                        </div>
+                        <button onclick="cart.remove(${item.id})" style="background:none; border:none; color:var(--danger); cursor:pointer"><i class="fas fa-trash"></i></button>
+                    </div>
+                `).join('');
+
+                const { subtotal, tax, total } = cart.calculate();
+                document.getElementById('subtotal').innerText = `$${subtotal.toFixed(2)}`;
+                document.getElementById('tax').innerText = `$${tax.toFixed(2)}`;
+                document.getElementById('total').innerText = `$${total.toFixed(2)}`;
+            },
+            renderCheckout: () => {
+                const { total } = cart.calculate();
+                document.getElementById('checkout-total').innerText = `$${total.toFixed(2)}`;
+                document.getElementById('checkout-summary-items').innerHTML = state.cart.map(i => 
+                    `<div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:5px;">
+                        <span style="width:70%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${i.qty}x ${i.title}</span>
+                        <span>$${(i.price * i.qty).toFixed(2)}</span>
+                    </div>`
+                ).join('');
+            }
+        };
+
+        // --- UI FUNCTIONS ---
+        const ui = {
+            renderProducts: (products) => {
+                const grid = document.getElementById('product-grid');
+                grid.innerHTML = products.map(product => `
+                    <div class="product-card">
+                        <div class="image-container">
+                            <img src="${product.image}" alt="${product.title}" class="product-image">
+                        </div>
+                        <div class="product-info">
+                            <div class="product-category">${product.category}</div>
+                            <h3 class="product-title">${product.title}</h3>
+                            <div class="price-row">
+                                <span class="price">$${product.price}</span>
+                                <button class="add-btn" onclick="cart.add(${product.id})">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            },
+            updateCartCount: () => {
+                const count = state.cart.reduce((sum, item) => sum + item.qty, 0);
+                document.getElementById('cart-count').innerText = count;
+            },
+            updateAuthUI: () => {
+                const icon = document.getElementById('user-icon');
+                if (state.user) {
+                    icon.classList.remove('fa-user');
+                    icon.classList.add('fa-sign-out-alt');
+                    icon.title = "Logout";
+                } else {
+                    icon.classList.remove('fa-sign-out-alt');
+                    icon.classList.add('fa-user');
+                    icon.title = "Login";
+                }
+            },
+            showToast: (msg) => {
+                const toast = document.getElementById('toast');
+                toast.innerText = msg;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            }
+        };
+
+        // --- HELPER FUNCTIONS ---
+        function filterProducts(category, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            if (category === 'all') ui.renderProducts(state.products);
+            else ui.renderProducts(state.products.filter(p => p.category === category));
+        }
+
+        function processPayment(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            
+            // Simulate processing
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                state.cart = [];
+                cart.save();
+                ui.updateCartCount();
+                alert("Payment Successful! Thank you for your order.");
+                router.navigate('home');
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }, 2000);
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            api.fetchProducts();
+            ui.updateCartCount();
+            ui.updateAuthUI();
+        };
+    </script>
+</body>
+</html>
