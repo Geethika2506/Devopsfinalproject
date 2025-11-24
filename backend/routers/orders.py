@@ -7,10 +7,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from .. import models
+from .. import crud, models
+from ..auth import require_api_key
 from ..database import get_db
 
-router = APIRouter(prefix="/orders", tags=["orders"])
+router = APIRouter(
+    prefix="/orders",
+    tags=["orders"],
+    dependencies=[Depends(require_api_key)],
+)
 
 
 class OrderCreate(BaseModel):
@@ -30,29 +35,25 @@ class OrderRead(BaseModel):
 
 @router.post("/", response_model=OrderRead, status_code=status.HTTP_201_CREATED)
 def create_order(payload: OrderCreate, db: Session = Depends(get_db)) -> models.Order:
-    customer = db.query(models.Customer).filter(models.Customer.id == payload.customer_id).first()
+    customer = crud.get_customer(db, payload.customer_id)
     if not customer:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
 
-    product = db.query(models.Product).filter(models.Product.id == payload.product_id).first()
+    product = crud.get_product(db, payload.product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
 
-    order = models.Order(**payload.model_dump())
-    db.add(order)
-    db.commit()
-    db.refresh(order)
-    return order
+    return crud.create_order(db, data=payload.model_dump())
 
 
 @router.get("/", response_model=List[OrderRead])
 def list_orders(db: Session = Depends(get_db)) -> list[models.Order]:
-    return db.query(models.Order).all()
+    return list(crud.list_orders(db))
 
 
 @router.get("/{order_id}", response_model=OrderRead)
 def get_order(order_id: int, db: Session = Depends(get_db)) -> models.Order:
-    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    order = crud.get_order(db, order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return order

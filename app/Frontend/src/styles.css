@@ -1,0 +1,111 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #f5f6fa;
+  color: #121417;
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+
+.card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+button, input, select {
+  font: inherit;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+input, select {
+  border: 1px solid #cbd5f5;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #1e4fcf;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  padding: 0.75rem 0.5rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.api-key-banner {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}

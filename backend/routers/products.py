@@ -8,10 +8,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from .. import models
+from .. import crud, models
+from ..auth import require_api_key
 from ..database import get_db
 
-router = APIRouter(prefix="/products", tags=["products"])
+router = APIRouter(
+    prefix="/products",
+    tags=["products"],
+    dependencies=[Depends(require_api_key)],
+)
 
 
 class ProductCreate(BaseModel):
@@ -31,21 +36,17 @@ class ProductRead(BaseModel):
 
 @router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
 def create_product(payload: ProductCreate, db: Session = Depends(get_db)) -> models.Product:
-    product = models.Product(**payload.model_dump())
-    db.add(product)
-    db.commit()
-    db.refresh(product)
-    return product
+    return crud.create_product(db, data=payload.model_dump())
 
 
 @router.get("/", response_model=List[ProductRead])
 def list_products(db: Session = Depends(get_db)) -> list[models.Product]:
-    return db.query(models.Product).all()
+    return list(crud.list_products(db))
 
 
 @router.get("/{product_id}", response_model=ProductRead)
 def get_product(product_id: int, db: Session = Depends(get_db)) -> models.Product:
-    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    product = crud.get_product(db, product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     return product
