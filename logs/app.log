@@ -24,3 +24,14 @@
 2025-11-24 17:25:12,260 - INFO - app - Request to create/get cart for user 5
 2025-11-24 17:25:12,261 - INFO - app - Getting or creating cart for user 5
 2025-11-24 17:25:12,268 - INFO - app - Created new cart 3 for user 5
+2025-11-24 21:02:07,067 - INFO - app - Request to create/get cart for user 6
+2025-11-24 21:02:07,067 - INFO - app - Getting or creating cart for user 6
+2025-11-24 21:02:07,071 - INFO - app - Created new cart 4 for user 6
+2025-11-24 21:02:12,192 - INFO - app - Adding product 9 (qty 1) to cart 4
+2025-11-24 21:02:12,200 - INFO - app - Ensuring product 9 exists in local DB
+2025-11-24 21:02:12,294 - INFO - app - Stored product 9 locally
+2025-11-24 21:02:12,297 - INFO - app - Created new cart_item for cart 4, product 9, quantity 1
+2025-11-24 21:02:17,753 - INFO - app - Creating order for user 6
+2025-11-24 21:02:17,757 - INFO - app - Calculated order total 64.0 for user 6
+2025-11-24 21:02:17,765 - INFO - app - Order 3 created for user 6
+2025-11-24 21:02:22,961 - INFO - app - Listing orders for user 6
