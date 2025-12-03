@@ -34,13 +34,13 @@ jobs:
       - name: Lint with flake8
         run: |
           # Stop build if there are Python syntax errors or undefined names
-          flake8 backend/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 Backend/ --count --select=E9,F63,F7,F82 --show-source --statistics
           # Exit-zero treats all errors as warnings
-          flake8 backend/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          flake8 Backend/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Run backend tests
         run: |
-          python -m pytest tests/ -v --cov=backend --cov-report=xml --cov-report=html --cov-report=term
+          python -m pytest tests/ -v --cov=Backend --cov-report=xml --cov-report=html --cov-report=term
         continue-on-error: false
 
       - name: Upload coverage reports
@@ -186,8 +186,8 @@ jobs:
 
       - name: Run Bandit security scan (Python SAST)
         run: |
-          bandit -r backend/ -f json -o bandit-report.json || true
-          bandit -r backend/ -f txt || true
+          bandit -r Backend/ -f json -o bandit-report.json || true
+          bandit -r Backend/ -f txt || true
         continue-on-error: true
 
       - name: Upload Bandit report
