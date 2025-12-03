@@ -1,31 +1,44 @@
 # Online Store - DevOps Final Project
 
 ## Overview
-Full-stack e-commerce application with FastAPI backend, React frontend, and JWT authentication. Deployed to Azure with CI/CD pipeline.
+Full-stack e-commerce application with FastAPI backend, React frontend, and JWT authentication. Features user authentication, product browsing, shopping cart, and order management.
 
 ## Tech Stack
 - **Backend:** FastAPI, SQLAlchemy, SQLite (local) / Azure SQL (prod)
 - **Frontend:** React + Vite
-- **Auth:** JWT tokens with bcrypt password hashing
+- **Auth:** JWT tokens with Argon2 password hashing
+- **Database:** SQLite (local development)
 - **Infrastructure:** Docker, Azure Container Registry, Azure App Service
 
 ## Quick Start
 
+### Prerequisites
+- Python 3.13+
+- Node.js 16+
+- Git
+
 ### 1. Backend Setup (Terminal 1)
 ```bash
+# Navigate to project root
+cd c:\Users\Meher\Desktop\yeartwo\Devopsfinalproject
+
 # Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+# Activate virtual environment (Windows)
+.venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirement.txt
 
 # Seed database with sample products
-PYTHONPATH=. python backend/seed.py
+python Backend/seed.py
 
 # Start backend server (keep this terminal running)
-uvicorn backend.main:app --host 0.0.0.0 --port 8000
+.venv\Scripts\python.exe -m uvicorn Backend.main:app --host 127.0.0.1 --port 8000
 ```
+
+Backend will be available at: **http://127.0.0.1:8000**
 
 ### 2. Frontend Setup (Terminal 2 - New Window)
 ```bash
@@ -34,23 +47,35 @@ npm install
 npm run dev
 ```
 
-### 3. Access the App
-- **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
+Frontend will be available at: **http://localhost:5173**
 
-### 4. Stopping the Servers
-- Press `Ctrl+C` in each terminal to stop the running server
-- If a port is stuck, kill the process:
-  ```bash
-  # Kill backend (uvicorn)
-  pkill -f uvicorn
-  
-  # Kill frontend (vite/node)
-  pkill -f vite
-  ```
+### 3. Access the Application
+| Service | URL |
+|---------|-----|
+| **Frontend** | http://localhost:5173 |
+| **Backend API** | http://127.0.0.1:8000 |
+| **API Documentation** | http://127.0.0.1:8000/docs |
+| **ReDoc** | http://127.0.0.1:8000/redoc |
 
-## API Endpoints
+### 4. Features
+- ✅ User registration & login with JWT authentication
+- ✅ Product browsing with category filtering
+- ✅ Shopping cart management
+- ✅ Order placement
+- ✅ Responsive UI
+- ✅ 20 sample products pre-seeded from FakeStoreAPI
+
+### 5. Stopping the Servers
+Press `Ctrl+C` in each terminal to stop the servers.
+
+**Windows - Kill by Process:**
+```powershell
+# Kill backend (Python)
+taskkill /F /IM python.exe
+
+# Kill frontend (Node)
+taskkill /F /IM node.exe
+```## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
