@@ -1,0 +1,41 @@
+# Python
+venv/
+.venv/
+venv311/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+
+# Environment files
+.env
+.env.*
+
+# Database
+*.db
+store.db
+
+# Logs
+logs/
+*.log
+
+# OS / misc
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
