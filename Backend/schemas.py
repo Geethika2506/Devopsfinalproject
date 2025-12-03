@@ -1,5 +1,5 @@
 """Pydantic schemas for request/response validation."""
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -31,8 +31,7 @@ class ProductResponse(ProductBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Auth schemas
@@ -71,8 +70,7 @@ class UserResponse(UserBase):
     created_at: datetime
     is_active: bool = True
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Alias for backward compatibility
@@ -93,8 +91,7 @@ class CartItemResponse(CartItemBase):
     id: int
     product: ProductResponse
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CartResponse(BaseModel):
@@ -113,8 +110,7 @@ class OrderItemResponse(OrderItemBase):
     price: float
     product: ProductResponse
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderCreate(BaseModel):
@@ -129,6 +125,5 @@ class OrderResponse(BaseModel):
     created_at: datetime
     items: List[OrderItemResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 

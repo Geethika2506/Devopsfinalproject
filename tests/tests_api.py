@@ -1,40 +1,5 @@
 """API tests for the Online Store."""
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from backend.database import Base, get_db
-from backend.main import app
-
-# Test database (in-memory SQLite)
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture(scope="function")
-def client():
-    """Create test client with fresh database for each test."""
-    Base.metadata.create_all(bind=engine)
-    yield TestClient(app)
-    Base.metadata.drop_all(bind=engine)
 
 
 # Health & Root Tests
@@ -115,22 +80,22 @@ class TestProducts:
 # User Tests
 class TestUsers:
     def test_create_user(self, client):
-        user_data = {"email": "test@example.com", "name": "Test User"}
+        user_data = {"email": "test@example.com", "name": "Test User", "password": "password123"}
         response = client.post("/users/", json=user_data)
         assert response.status_code == 201
         assert response.json()["email"] == "test@example.com"
 
     def test_create_duplicate_user(self, client):
-        user_data = {"email": "duplicate@example.com", "name": "User 1"}
+        user_data = {"email": "duplicate@example.com", "name": "User 1", "password": "password123"}
         client.post("/users/", json=user_data)
         
         # Try to create with same email
-        response = client.post("/users/", json={"email": "duplicate@example.com", "name": "User 2"})
+        response = client.post("/users/", json={"email": "duplicate@example.com", "name": "User 2", "password": "password123"})
         assert response.status_code == 400
 
     def test_list_users(self, client):
-        client.post("/users/", json={"email": "user1@example.com"})
-        client.post("/users/", json={"email": "user2@example.com"})
+        client.post("/users/", json={"email": "user1@example.com", "password": "password123"})
+        client.post("/users/", json={"email": "user2@example.com", "password": "password123"})
         
         response = client.get("/users/")
         assert response.status_code == 200
@@ -141,7 +106,7 @@ class TestUsers:
 class TestCart:
     def test_add_to_cart(self, client):
         # Create user and product
-        user_response = client.post("/users/", json={"email": "cart@example.com"})
+        user_response = client.post("/users/", json={"email": "cart@example.com", "password": "password123"})
         user_id = user_response.json()["id"]
         
         product_response = client.post("/products/", json={"title": "Cart Item", "price": 25.0, "category": "test"})
@@ -157,7 +122,7 @@ class TestCart:
 
     def test_get_cart(self, client):
         # Create user and product
-        user_response = client.post("/users/", json={"email": "getcart@example.com"})
+        user_response = client.post("/users/", json={"email": "getcart@example.com", "password": "password123"})
         user_id = user_response.json()["id"]
         
         product_response = client.post("/products/", json={"title": "Cart Product", "price": 50.0, "category": "test"})
@@ -180,7 +145,7 @@ class TestCart:
 class TestOrders:
     def test_create_order(self, client):
         # Create user and product
-        user_response = client.post("/users/", json={"email": "order@example.com"})
+        user_response = client.post("/users/", json={"email": "order@example.com", "password": "password123"})
         user_id = user_response.json()["id"]
         
         product_response = client.post("/products/", json={"title": "Order Item", "price": 100.0, "category": "test"})
@@ -197,7 +162,7 @@ class TestOrders:
 
     def test_list_orders(self, client):
         # Create user and product
-        user_response = client.post("/users/", json={"email": "listorders@example.com"})
+        user_response = client.post("/users/", json={"email": "listorders@example.com", "password": "password123"})
         user_id = user_response.json()["id"]
         
         product_response = client.post("/products/", json={"title": "Order Product", "price": 30.0, "category": "test"})
