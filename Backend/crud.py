@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import distinct
 from typing import List, Optional
-from backend import models, schemas
+import models, schemas
 
 
 # Product CRUD

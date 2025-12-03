@@ -2,8 +2,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from typing import List
-from backend.database import get_db
-from backend import crud, schemas
+from database import get_db
+import crud, schemas
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 

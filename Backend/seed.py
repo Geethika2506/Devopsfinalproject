@@ -1,7 +1,7 @@
 """Seed script to populate database with sample data from FakeStoreAPI."""
 import requests
-from backend.database import SessionLocal, engine, Base
-from backend.models import Product
+from database import SessionLocal, engine, Base
+from models import Product
 
 # FakeStoreAPI endpoint - can be changed to any compatible API
 FAKE_STORE_API_URL = "https://fakestoreapi.com/products"

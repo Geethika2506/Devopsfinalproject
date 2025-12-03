@@ -1,8 +1,14 @@
 """FastAPI main application."""
+import sys
+import os
+
+# Add current directory to path so imports work
+sys.path.insert(0, os.path.dirname(__file__))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.database import engine, Base
-from backend.routers import products, cart, orders, users, auth
+from database import engine, Base
+from routers import products, cart, orders, users, auth
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
