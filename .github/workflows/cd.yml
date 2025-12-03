@@ -16,7 +16,7 @@ on:
 
 env:
   PYTHON_VERSION: '3.11'
-  AZURE_WEBAPP_NAME: 'the-shop-app-a9gkh7esb3g5hhcm'
+  AZURE_WEBAPP_NAME: 'the-shop-app'
 
 jobs:
   # ============================================
