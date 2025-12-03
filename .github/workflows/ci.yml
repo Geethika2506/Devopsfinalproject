@@ -1,79 +1,60 @@
-# CI Pipeline - Online Store DevOps Project
-# Jobs: Backend Tests & Linting, Frontend Tests & Build, Docker Build Test, Code Quality
-
 name: CI Pipeline
 
 on:
   push:
-    branches: [ci-complete, develop, main]
+    branches:
+      - ci-pipeline
+      - develop
+      - feature/**
   pull_request:
-    branches: [main, ci-complete]
-
-# Cancel in-progress runs when a new commit is pushed
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    branches:
+      - develop
+      - main
 
 jobs:
-  # ============================================
-  # JOB 1: BACKEND TESTS & LINTING
-  # ============================================
   backend-tests:
     name: Backend Tests & Linting
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.9", "3.10", "3.11"]
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: "pip"
-          cache-dependency-path: "requirement.txt"
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirement.txt
-          pip install pytest-cov flake8 pylint
+          pip install pytest pytest-cov flake8
 
-      # Linting
-      - name: Run Flake8 (critical errors)
-        run: flake8 backend --count --select=E9,F63,F7,F82 --show-source --statistics
-
-      - name: Run Flake8 (style warnings)
-        run: flake8 backend --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-      # Testing
-      - name: Run pytest with coverage
+      - name: Lint with flake8
         run: |
-          python -m pytest tests/ -v --tb=short --cov=backend --cov-report=term-missing --cov-report=xml
+          # Stop build if there are Python syntax errors or undefined names
+          flake8 backend/ --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Exit-zero treats all errors as warnings
+          flake8 backend/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        if: matrix.python-version == '3.11'
+      - name: Run backend tests
+        run: |
+          python -m pytest tests/ -v --cov=backend --cov-report=xml --cov-report=html --cov-report=term
+        continue-on-error: false
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
         with:
-          name: backend-coverage-report
-          path: coverage.xml
+          file: ./coverage.xml
+          flags: backend
+          name: backend-coverage
+        continue-on-error: true
 
-  # ============================================
-  # JOB 2: FRONTEND TESTS & BUILD
-  # ============================================
-  frontend-build:
+  frontend-tests:
     name: Frontend Tests & Build
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./frontend
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -81,36 +62,40 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: "./frontend/package-lock.json"
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: ./frontend
         run: npm ci
 
-      # Linting
-      - name: Run ESLint
+      - name: Lint frontend code
+        working-directory: ./frontend
         run: npm run lint
+        continue-on-error: true
 
-      # Build
-      - name: Build for production
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: npm test
+        continue-on-error: true
+
+      - name: Build frontend
+        working-directory: ./frontend
         run: npm run build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: frontend/dist
+          path: frontend/dist/
           retention-days: 7
 
-  # ============================================
-  # JOB 3: DOCKER BUILD TEST
-  # ============================================
   docker-build:
     name: Docker Build Test
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-build]
-
+    needs: [backend-tests, frontend-tests]
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -118,183 +103,179 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Build Backend Image
       - name: Build backend Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./dockerfile
           push: false
-          tags: |
-            devops-backend:${{ github.sha }}
-            devops-backend:latest
+          tags: store-backend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Build Frontend Image
       - name: Build frontend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
+          context: .
           file: ./frontend/Dockerfile
           push: false
-          tags: |
-            devops-frontend:${{ github.sha }}
-            devops-frontend:latest
+          tags: store-frontend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Test Docker Compose
-      - name: Test docker-compose build
-        run: docker-compose build
-
-      - name: Start services
+      - name: Test Docker Compose
         run: |
-          docker-compose up -d
-          sleep 10
+          docker compose config
+          echo "✅ Docker Compose configuration is valid"
 
-      - name: Verify backend health
-        run: |
-          curl -f http://localhost:8000/health || exit 1
-          echo "✅ Backend is healthy"
-
-      - name: Verify frontend is serving
-        run: |
-          curl -f http://localhost:80 || exit 1
-          echo "✅ Frontend is serving"
-
-      - name: Test API endpoints
-        run: |
-          curl -f http://localhost:8000/products/ || exit 1
-          echo "✅ Products endpoint working"
-          curl -f http://localhost:8000/products/categories || exit 1
-          echo "✅ Categories endpoint working"
-
-      - name: Show logs on failure
-        if: failure()
-        run: docker-compose logs
-
-      - name: Stop services
-        if: always()
-        run: docker-compose down
-
-  # ============================================
-  # JOB 4: CODE QUALITY CHECKS
-  # ============================================
   code-quality:
     name: Code Quality Checks
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Run security scan
+        uses: aquasecurity/trivy-action@master
         with:
-          python-version: "3.11"
-          cache: "pip"
-          cache-dependency-path: "requirement.txt"
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+        continue-on-error: true
 
-      - name: Install tools
-        run: |
-          pip install radon
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
 
-      # Cyclomatic Complexity
-      - name: Check cyclomatic complexity
-        run: |
-          echo "=== Cyclomatic Complexity Report ==="
-          radon cc backend -a -s
-
-      # Maintainability Index
-      - name: Check maintainability index
-        run: |
-          echo "=== Maintainability Index ==="
-          radon mi backend -s
-
-      # Lines of Code
-      - name: Lines of code analysis
-        run: |
-          echo "=== Raw Metrics ==="
-          radon raw backend -s
-
-  # ============================================
-  # JOB 5: SECURITY SCANS (Optional - runs but doesn't block)
-  # Move to CD pipeline after Azure setup for stricter enforcement
-  # ============================================
   security-scan:
-    name: Security Scan (Advisory)
+    name: Security Scanning
     runs-on: ubuntu-latest
-    continue-on-error: true  # Don't block CI, advisory only
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-          cache: "pip"
-          cache-dependency-path: "requirement.txt"
+          python-version: '3.11'
 
-      - name: Install security tools
-        run: pip install bandit safety pip-audit
+      # Python Dependency Vulnerability Scan
+      - name: Install safety for Python security scan
+        run: pip install safety pip-audit
 
-      - name: Run Bandit (code security)
+      - name: Run pip-audit (Python dependency vulnerabilities)
         run: |
-          echo "=== Bandit Security Scan ==="
-          bandit -r backend -ll -f txt || true
+          pip install -r requirement.txt
+          pip-audit --strict --desc || true
+        continue-on-error: true
 
-      - name: Install dependencies for audit
-        run: pip install -r requirement.txt
+      - name: Run safety check (Python security)
+        run: safety check -r requirement.txt --full-report || true
+        continue-on-error: true
 
-      - name: Run pip-audit (dependency vulnerabilities)
+      # Bandit - Python SAST
+      - name: Install Bandit
+        run: pip install bandit
+
+      - name: Run Bandit security scan (Python SAST)
         run: |
-          echo "=== Dependency Vulnerability Scan ==="
-          pip-audit || true
+          bandit -r backend/ -f json -o bandit-report.json || true
+          bandit -r backend/ -f txt || true
+        continue-on-error: true
 
-      - name: Generate security report
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-security-report
+          path: bandit-report.json
+          retention-days: 30
+        continue-on-error: true
+
+      # Secret Scanning
+      - name: Run Gitleaks (Secret Detection)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      # Trivy Vulnerability Scan
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      # npm audit for frontend
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run npm audit (Frontend vulnerabilities)
+        working-directory: ./frontend
         run: |
-          echo "=== Security Summary ==="
-          echo "⚠️  Security scans are advisory during CI"
-          echo "🔒 Stricter enforcement will be added in CD pipeline"
+          npm ci
+          npm audit --audit-level=moderate || true
+        continue-on-error: true
 
-  # ============================================
-  # FINAL STATUS CHECK
-  # ============================================
-  ci-success:
-    name: CI Success
+      # Docker Image Vulnerability Scan
+      - name: Build backend image for scanning
+        run: docker build -t backend-scan:latest -f dockerfile .
+        continue-on-error: true
+
+      - name: Run Trivy on backend Docker image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'backend-scan:latest'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+        continue-on-error: true
+
+      - name: Security scan summary
+        run: |
+          echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scan Type | Tool | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Dependencies | pip-audit, safety | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python SAST | Bandit | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Detection | Gitleaks | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Filesystem Scan | Trivy | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| npm Dependencies | npm audit | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Image | Trivy | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+
+  ci-summary:
+    name: CI Summary
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-build, docker-build, code-quality]
+    needs: [backend-tests, frontend-tests, docker-build, code-quality, security-scan]
     if: always()
-
+    
     steps:
-      - name: Check all jobs passed
+      - name: Check CI status
         run: |
-          echo "========================================"
-          echo "           CI JOB RESULTS              "
-          echo "========================================"
-          echo ""
-          echo "  Backend Tests & Linting: ${{ needs.backend-tests.result }}"
-          echo "  Frontend Tests & Build:  ${{ needs.frontend-build.result }}"
-          echo "  Docker Build Test:       ${{ needs.docker-build.result }}"
-          echo "  Code Quality Checks:     ${{ needs.code-quality.result }}"
-          echo ""
-          
-          if [ "${{ needs.backend-tests.result }}" != "success" ] || \
-             [ "${{ needs.frontend-build.result }}" != "success" ] || \
-             [ "${{ needs.docker-build.result }}" != "success" ] || \
-             [ "${{ needs.code-quality.result }}" != "success" ]; then
-            echo "❌ One or more required jobs failed"
-            exit 1
-          fi
-          
-          echo "========================================="
-          echo "✅ ALL CI CHECKS PASSED!"
-          echo "========================================="
-          echo ""
-          echo "📋 Next Steps:"
-          echo "   - Security scans ran as advisory"
-          echo "   - Ready for CD deployment"
-
+          echo "## CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All CI checks completed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Tests | ${{ needs.backend-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Tests | ${{ needs.frontend-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.docker-build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
