@@ -13,9 +13,43 @@ Full-stack e-commerce application with FastAPI backend, React frontend, and JWT 
 ## Quick Start
 
 ### Prerequisites
-- Python 3.13+
+- Python 3.9+
 - Node.js 16+
 - Git
+- Docker (optional, for containerized deployment)
+
+---
+
+## Option A: Run with Docker (Recommended)
+
+**Easiest way to run the entire app:**
+
+```bash
+# Clone and navigate to project
+git clone https://github.com/Geethika2506/Devopsfinalproject.git
+cd Devopsfinalproject
+
+# Start both frontend and backend
+docker-compose up
+
+# Or build fresh and start
+docker-compose up --build
+```
+
+| Service | URL |
+|---------|-----|
+| **Frontend** | http://localhost |
+| **Backend API** | http://localhost:8000 |
+| **API Docs** | http://localhost:8000/docs |
+
+**Stop containers:**
+```bash
+docker-compose down
+```
+
+---
+
+## Option B: Run Without Docker (Manual Setup)
 
 ### 1. Backend Setup (Terminal 1)
 
