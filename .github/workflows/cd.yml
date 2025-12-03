@@ -1,12 +1,9 @@
-# CD Pipeline - Azure Container Registry + Container Apps
+# CD Pipeline - Azure App Service Deployment
+#
+# Deploys THE SHOP backend to Azure App Service
 #
 # REQUIRED GITHUB SECRETS:
 #   AZURE_CREDENTIALS  - Azure Service Principal JSON
-#   ACR_USERNAME       - Container Registry username
-#   ACR_PASSWORD       - Container Registry password
-#
-# REQUIRED GITHUB VARIABLES:
-#   RESOURCE_GROUP     - Azure Resource Group name
 
 name: CD Pipeline
 
@@ -18,10 +15,8 @@ on:
   workflow_dispatch:
 
 env:
-  ACR_NAME: theshopproject
-  ACR_LOGIN_SERVER: theshopproject.azurecr.io
   PYTHON_VERSION: '3.11'
-  NODE_VERSION: '20'
+  AZURE_WEBAPP_NAME: 'the-shop-app-a9gkh7esb3g5hhcm'
 
 jobs:
   # ============================================
@@ -51,10 +46,10 @@ jobs:
         run: python -m pytest tests/ -v
 
   # ============================================
-  # BUILD AND PUSH TO ACR
+  # BUILD
   # ============================================
-  build-and-push:
-    name: Build and Push to ACR
+  build:
+    name: Build Application
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'push'
@@ -63,116 +58,63 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Azure Container Registry
-        uses: docker/login-action@v3
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          registry: ${{ env.ACR_LOGIN_SERVER }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Build and push Backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./dockerfile
-          push: true
-          tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/theshop-backend:${{ github.sha }}
-            ${{ env.ACR_LOGIN_SERVER }}/theshop-backend:latest
-
-      - name: Build and push Frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/theshop-frontend:${{ github.sha }}
-            ${{ env.ACR_LOGIN_SERVER }}/theshop-frontend:latest
-
-      - name: Summary
+      - name: Create virtual environment and install dependencies
         run: |
-          echo "## Images Pushed to ACR" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend: ${{ env.ACR_LOGIN_SERVER }}/theshop-backend:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend: ${{ env.ACR_LOGIN_SERVER }}/theshop-frontend:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirement.txt
+
+      - name: Zip artifact for deployment
+        run: |
+          zip -r release.zip . -x "*.git*" -x "*venv*" -x "*__pycache__*" -x "*.pytest_cache*" -x "frontend/*" -x "tests/*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: release.zip
 
   # ============================================
-  # DEPLOY TO AZURE CONTAINER APPS
+  # DEPLOY TO AZURE APP SERVICE
   # ============================================
   deploy:
     name: Deploy to Azure
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: build
     if: github.event_name == 'push'
 
     steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: python-app
+
+      - name: Unzip artifact
+        run: unzip release.zip -d release
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy Backend Container App
-        run: |
-          echo "Deploying Backend..."
-          
-          # Check if container app exists
-          EXISTS=$(az containerapp show --name theshop-backend --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
-          
-          if [ -z "$EXISTS" ]; then
-            echo "Creating new backend container app..."
-            az containerapp create \
-              --name theshop-backend \
-              --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.ACR_LOGIN_SERVER }}/theshop-backend:${{ github.sha }} \
-              --registry-server ${{ env.ACR_LOGIN_SERVER }} \
-              --registry-username ${{ secrets.ACR_USERNAME }} \
-              --registry-password ${{ secrets.ACR_PASSWORD }} \
-              --target-port 8000 \
-              --ingress external \
-              --cpu 0.5 --memory 1.0Gi || echo "Container app creation may require Container Apps Environment"
-          else
-            echo "Updating backend container app..."
-            az containerapp update \
-              --name theshop-backend \
-              --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.ACR_LOGIN_SERVER }}/theshop-backend:${{ github.sha }}
-          fi
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: release
 
-      - name: Deploy Frontend Container App
+      - name: Configure startup command
         run: |
-          echo "Deploying Frontend..."
-          
-          EXISTS=$(az containerapp show --name theshop-frontend --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
-          
-          if [ -z "$EXISTS" ]; then
-            echo "Creating new frontend container app..."
-            az containerapp create \
-              --name theshop-frontend \
-              --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.ACR_LOGIN_SERVER }}/theshop-frontend:${{ github.sha }} \
-              --registry-server ${{ env.ACR_LOGIN_SERVER }} \
-              --registry-username ${{ secrets.ACR_USERNAME }} \
-              --registry-password ${{ secrets.ACR_PASSWORD }} \
-              --target-port 80 \
-              --ingress external \
-              --cpu 0.5 --memory 1.0Gi || echo "Container app creation may require Container Apps Environment"
-          else
-            echo "Updating frontend container app..."
-            az containerapp update \
-              --name theshop-frontend \
-              --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.ACR_LOGIN_SERVER }}/theshop-frontend:${{ github.sha }}
-          fi
+          az webapp config set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ vars.RESOURCE_GROUP }} --startup-file "gunicorn -w 4 -k uvicorn.workers.UvicornWorker Backend.main:app --bind 0.0.0.0:8000"
 
-      - name: Get App URLs
+      - name: Summary
         run: |
-          BACKEND_URL=$(az containerapp show --name theshop-backend --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
-          FRONTEND_URL=$(az containerapp show --name theshop-frontend --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
-          
-          echo "## THE SHOP - Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend API: https://${BACKEND_URL}" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend Docs: https://${BACKEND_URL}/docs" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend: https://${FRONTEND_URL}" >> $GITHUB_STEP_SUMMARY
+          echo "## THE SHOP - Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- App URL: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "- API Docs: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/docs" >> $GITHUB_STEP_SUMMARY
