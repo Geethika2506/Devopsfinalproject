@@ -64,3 +64,17 @@ def get_order(db: Session, order_id: int) -> Optional[models.Order]:
 
 def list_orders(db: Session) -> Iterable[models.Order]:
     return db.query(models.Order).all()
+
+
+# User helpers
+
+def create_user(db: Session, *, email: str, password_hash: str) -> models.User:
+    user = models.User(email=email, password_hash=password_hash)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def get_user_by_email(db: Session, email: str) -> Optional[models.User]:
+    return db.query(models.User).filter(models.User.email == email).first()

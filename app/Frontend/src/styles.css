@@ -57,10 +57,15 @@ form {
   margin-top: 1rem;
 }
 
-input, select {
+input, select, textarea {
   border: 1px solid #cbd5f5;
   border-radius: 8px;
   padding: 0.6rem 0.75rem;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 110px;
 }
 
 button {
@@ -101,11 +106,118 @@ button:hover {
   color: #0369a1;
 }
 
-.api-key-banner {
-  background: #fef3c7;
-  border: 1px solid #fde68a;
-  border-radius: 10px;
-  padding: 0.9rem 1rem;
+.auth-banner {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
   margin-bottom: 1.5rem;
-  font-size: 0.95rem;
+}
+
+.auth-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.auth-grid form {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #fff;
+  margin: 0;
+}
+
+.auth-grid h3 {
+  margin: 0 0 0.5rem;
+}
+
+.auth-success {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.auth-success button {
+  margin: 0;
+  background: #ef4444;
+}
+
+.inline-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.product-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fff, #f8fafc);
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+}
+
+.product-card img,
+.product-placeholder {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.product-meta {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.product-meta h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.product-category {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.product-price {
+  font-weight: 600;
+}
+
+.product-rating {
+  font-size: 0.9rem;
+  color: #ef4444;
+}
+
+.empty-state {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px dashed #cbd5f5;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.grid[aria-disabled="true"] {
+  opacity: 0.4;
+  pointer-events: none;
 }

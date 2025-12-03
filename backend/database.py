@@ -30,6 +30,12 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
+def create_all_tables() -> None:
+    from . import models  # noqa: F401 (import populates metadata)
+
+    Base.metadata.create_all(bind=engine)
+
+
 @contextmanager
 def get_db() -> Generator:
     db = SessionLocal()

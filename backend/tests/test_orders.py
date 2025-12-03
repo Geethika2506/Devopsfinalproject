@@ -9,9 +9,14 @@ pytestmark = pytest.mark.anyio("asyncio")
 
 
 async def _create_product(
-    client: httpx.AsyncClient, name: str = "Widget", price: float = 9.99
+    client: httpx.AsyncClient, title: str = "Widget", price: float = 9.99
 ) -> dict:
-    payload = {"name": name, "price": price, "description": "Test"}
+    payload = {
+        "title": title,
+        "price": price,
+        "description": "Test",
+        "category": "test",
+    }
     resp = await client.post("/products/", json=payload)
     assert resp.status_code == 201
     return resp.json()

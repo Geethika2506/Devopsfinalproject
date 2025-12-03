@@ -8,13 +8,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from .. import crud, models
-from ..auth import require_api_key
+from ..auth import get_current_user
 from ..database import get_db
 
 router = APIRouter(
     prefix="/orders",
     tags=["orders"],
-    dependencies=[Depends(require_api_key)],
+    dependencies=[Depends(get_current_user)],
 )
 
 

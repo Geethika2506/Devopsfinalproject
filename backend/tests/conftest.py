@@ -57,10 +57,25 @@ def _reset_tables():
     yield
 
 
+async def _prepare_authenticated_client(client: httpx.AsyncClient) -> None:
+    credentials = {"email": "tester@example.com", "password": "secret123"}
+    register_resp = await client.post("/auth/register", json=credentials)
+    assert register_resp.status_code == 201
+    token_resp = await client.post(
+        "/auth/token",
+        data={"username": credentials["email"], "password": credentials["password"]},
+        headers={"content-type": "application/x-www-form-urlencoded"},
+    )
+    assert token_resp.status_code == 200
+    token = token_resp.json()["access_token"]
+    client.headers["Authorization"] = f"Bearer {token}"
+
+
 @pytest.fixture()
 async def client() -> httpx.AsyncClient:
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(
         transport=transport, base_url="http://testserver"
     ) as client:
+        await _prepare_authenticated_client(client)
         yield client
