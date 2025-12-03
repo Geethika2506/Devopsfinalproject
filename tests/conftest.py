@@ -2,9 +2,9 @@
 import sys
 import os
 
-# Add backend to path BEFORE any imports, matching how main.py does it
+# Add Backend to path BEFORE any imports, matching how main.py does it
 # This ensures we use the same module instances
-backend_path = os.path.join(os.path.dirname(__file__), '..', 'backend')
+backend_path = os.path.join(os.path.dirname(__file__), '..', 'Backend')
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 

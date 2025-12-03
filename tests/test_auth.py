@@ -1,7 +1,7 @@
 """Unit tests for authentication module."""
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'Backend'))
 
 import pytest
 from datetime import timedelta
