@@ -101,14 +101,12 @@ jobs:
 
       - name: Run backend unit tests
         run: |
-          cd Backend
           python -m pytest tests/ -v --tb=short --junitxml=test-results.xml
         continue-on-error: false
 
       - name: Run backend tests with coverage
         run: |
-          cd Backend
-          python -m pytest tests/ --cov=. --cov-report=xml --cov-report=term-missing --cov-fail-under=50
+          python -m pytest tests/ --cov=Backend --cov-report=xml --cov-report=term-missing --cov-fail-under=50
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
