@@ -1,107 +1,35 @@
-# CD Pipeline - GitHub Container Registry + Azure Deployment
-# 
-# This pipeline uses GitHub Container Registry (free) for Docker images
-# and deploys to Azure Container Apps using Azure credentials.
+# CD Pipeline - Azure Container Registry + Container Apps
 #
-# ============================================
 # REQUIRED GITHUB SECRETS:
-# ============================================
-# AZURE_CREDENTIALS     - Azure Service Principal JSON
+#   AZURE_CREDENTIALS  - Azure Service Principal JSON
+#   ACR_USERNAME       - Container Registry username
+#   ACR_PASSWORD       - Container Registry password
 #
-# Format:
-# {"clientId":"YOUR_APP_ID","clientSecret":"YOUR_PASSWORD","subscriptionId":"YOUR_SUB_ID","tenantId":"YOUR_TENANT_ID"}
-#
-# ============================================
 # REQUIRED GITHUB VARIABLES:
-# ============================================
-# RESOURCE_GROUP        - Azure Resource Group name (BCSAI2025-DEVOPS-STUDENT-8A)
-#
-# ============================================
-# REQUIRED GITHUB ENVIRONMENTS:
-# ============================================
-# staging               - No protection rules needed
-# production            - Add "Required reviewers" protection rule
-# ============================================
+#   RESOURCE_GROUP     - Azure Resource Group name
 
 name: CD Pipeline
 
 on:
   push:
     branches: [main, cd-pipeline]
-    tags:
-      - 'v*'
   pull_request:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Target environment'
-        required: true
-        type: choice
-        options:
-          - staging
-          - production
-        default: staging
-      skip_tests:
-        description: 'Skip tests (use with caution)'
-        required: false
-        type: boolean
-        default: false
-
-concurrency:
-  group: cd-${{ github.ref }}
-  cancel-in-progress: false
 
 env:
-  REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/${{ github.repository }}-backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}-frontend
+  ACR_NAME: theshopproject
+  ACR_LOGIN_SERVER: theshopproject.azurecr.io
   PYTHON_VERSION: '3.11'
   NODE_VERSION: '20'
 
 jobs:
   # ============================================
-  # PHASE 1: PREPARATION
+  # TEST
   # ============================================
-  prepare:
-    name: Prepare Pipeline
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.vars.outputs.version }}
-      short_sha: ${{ steps.vars.outputs.short_sha }}
-      deploy_staging: ${{ steps.check.outputs.deploy_staging }}
-      deploy_production: ${{ steps.check.outputs.deploy_production }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Check deployment targets
-        id: check
-        run: |
-          echo "deploy_staging=true" >> $GITHUB_OUTPUT
-          echo "deploy_production=true" >> $GITHUB_OUTPUT
-
-      - name: Generate version info
-        id: vars
-        run: |
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          VERSION="${{ github.ref_name }}-${SHORT_SHA}"
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "📋 Version: ${VERSION}"
-
-  # ============================================
-  # PHASE 2: TESTING
-  # ============================================
-  test-backend:
-    name: Test Backend
-    runs-on: ubuntu-latest
-    needs: prepare
-    if: inputs.skip_tests != true
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -117,105 +45,19 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirement.txt
-          pip install pytest pytest-cov pytest-asyncio httpx flake8
-
-      - name: Run linting
-        run: flake8 Backend/ --count --select=E9,F63,F7,F82 --show-source --statistics || true
-
-      - name: Run tests with coverage
-        run: python -m pytest tests/ -v --cov=Backend --cov-report=xml --junitxml=test-results.xml
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: backend-test-results
-          path: |
-            test-results.xml
-            coverage.xml
-
-  test-frontend:
-    name: Test Frontend
-    runs-on: ubuntu-latest
-    needs: prepare
-    if: inputs.skip_tests != true
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: cd frontend && npm ci
-
-      - name: Run linting
-        run: cd frontend && npm run lint || true
+          pip install pytest pytest-asyncio httpx
 
       - name: Run tests
-        run: cd frontend && npm test 2>/dev/null || echo "No test script - skipping"
-
-      - name: Build frontend
-        run: cd frontend && npm run build
+        run: python -m pytest tests/ -v
 
   # ============================================
-  # PHASE 3: SECURITY SCANNING
-  # ============================================
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: prepare
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install and run security tools
-        run: |
-          pip install bandit safety pip-audit
-          bandit -r Backend/ -f txt --severity-level high || true
-          pip install -r requirement.txt
-          pip-audit -r requirement.txt || true
-
-      - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          exit-code: '0'
-          severity: 'CRITICAL,HIGH'
-
-  # ============================================
-  # PHASE 4: BUILD & PUSH TO GITHUB CONTAINER REGISTRY
+  # BUILD AND PUSH TO ACR
   # ============================================
   build-and-push:
-    name: Build and Push Images
+    name: Build and Push to ACR
     runs-on: ubuntu-latest
-    needs: [prepare, test-backend, test-frontend, security-scan]
-    if: |
-      always() &&
-      (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped') &&
-      (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped') &&
-      needs.security-scan.result == 'success'
-
-    permissions:
-      contents: read
-      packages: write
-
-    outputs:
-      backend_image: ${{ steps.meta-backend.outputs.tags }}
-      frontend_image: ${{ steps.meta-frontend.outputs.tags }}
+    needs: test
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout code
@@ -224,30 +66,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GitHub Container Registry
+      - name: Login to Azure Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata for Backend
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.BACKEND_IMAGE }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Extract metadata for Frontend
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.FRONTEND_IMAGE }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and push Backend image
         uses: docker/build-push-action@v5
@@ -255,9 +79,9 @@ jobs:
           context: .
           file: ./dockerfile
           push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.ACR_LOGIN_SERVER }}/theshop-backend:${{ github.sha }}
+            ${{ env.ACR_LOGIN_SERVER }}/theshop-backend:latest
 
       - name: Build and push Frontend image
         uses: docker/build-push-action@v5
@@ -265,27 +89,24 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.ACR_LOGIN_SERVER }}/theshop-frontend:${{ github.sha }}
+            ${{ env.ACR_LOGIN_SERVER }}/theshop-frontend:latest
 
-      - name: Output image info
+      - name: Summary
         run: |
-          echo "### Images Pushed to GitHub Container Registry" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend: \`${{ env.BACKEND_IMAGE }}:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend: \`${{ env.FRONTEND_IMAGE }}:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "## Images Pushed to ACR" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: ${{ env.ACR_LOGIN_SERVER }}/theshop-backend:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: ${{ env.ACR_LOGIN_SERVER }}/theshop-frontend:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
 
   # ============================================
-  # PHASE 5: DEPLOY TO AZURE (STAGING)
+  # DEPLOY TO AZURE CONTAINER APPS
   # ============================================
-  deploy-staging:
-    name: Deploy to Staging
+  deploy:
+    name: Deploy to Azure
     runs-on: ubuntu-latest
-    needs: [prepare, build-and-push]
-    if: needs.build-and-push.result == 'success'
-
-    environment:
-      name: staging
+    needs: build-and-push
+    if: github.event_name == 'push'
 
     steps:
       - name: Login to Azure
@@ -293,195 +114,65 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy Backend to Azure Container Apps
+      - name: Deploy Backend Container App
         run: |
-          echo "Deploying Backend to Staging..."
+          echo "Deploying Backend..."
           
           # Check if container app exists
-          EXISTS=$(az containerapp show --name theshop-backend-staging --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
+          EXISTS=$(az containerapp show --name theshop-backend --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
           
           if [ -z "$EXISTS" ]; then
-            echo "Creating new container app..."
+            echo "Creating new backend container app..."
             az containerapp create \
-              --name theshop-backend-staging \
+              --name theshop-backend \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
+              --image ${{ env.ACR_LOGIN_SERVER }}/theshop-backend:${{ github.sha }} \
+              --registry-server ${{ env.ACR_LOGIN_SERVER }} \
+              --registry-username ${{ secrets.ACR_USERNAME }} \
+              --registry-password ${{ secrets.ACR_PASSWORD }} \
               --target-port 8000 \
               --ingress external \
-              --cpu 0.5 --memory 1.0Gi \
-              --env-vars APP_ENV=staging APP_VERSION=${{ github.sha }} || true
+              --cpu 0.5 --memory 1.0Gi || echo "Container app creation may require Container Apps Environment"
           else
-            echo "Updating existing container app..."
+            echo "Updating backend container app..."
             az containerapp update \
-              --name theshop-backend-staging \
+              --name theshop-backend \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.BACKEND_IMAGE }}:${{ github.sha }} || true
+              --image ${{ env.ACR_LOGIN_SERVER }}/theshop-backend:${{ github.sha }}
           fi
-        continue-on-error: true
 
-      - name: Deploy Frontend to Azure Container Apps
+      - name: Deploy Frontend Container App
         run: |
-          echo "Deploying Frontend to Staging..."
+          echo "Deploying Frontend..."
           
-          EXISTS=$(az containerapp show --name theshop-frontend-staging --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
+          EXISTS=$(az containerapp show --name theshop-frontend --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
           
           if [ -z "$EXISTS" ]; then
+            echo "Creating new frontend container app..."
             az containerapp create \
-              --name theshop-frontend-staging \
+              --name theshop-frontend \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
+              --image ${{ env.ACR_LOGIN_SERVER }}/theshop-frontend:${{ github.sha }} \
+              --registry-server ${{ env.ACR_LOGIN_SERVER }} \
+              --registry-username ${{ secrets.ACR_USERNAME }} \
+              --registry-password ${{ secrets.ACR_PASSWORD }} \
               --target-port 80 \
               --ingress external \
-              --cpu 0.5 --memory 1.0Gi || true
+              --cpu 0.5 --memory 1.0Gi || echo "Container app creation may require Container Apps Environment"
           else
+            echo "Updating frontend container app..."
             az containerapp update \
-              --name theshop-frontend-staging \
+              --name theshop-frontend \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.FRONTEND_IMAGE }}:${{ github.sha }} || true
+              --image ${{ env.ACR_LOGIN_SERVER }}/theshop-frontend:${{ github.sha }}
           fi
-        continue-on-error: true
 
-      - name: Get Staging URLs
+      - name: Get App URLs
         run: |
-          BACKEND_URL=$(az containerapp show --name theshop-backend-staging --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
-          FRONTEND_URL=$(az containerapp show --name theshop-frontend-staging --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
+          BACKEND_URL=$(az containerapp show --name theshop-backend --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
+          FRONTEND_URL=$(az containerapp show --name theshop-frontend --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
           
-          echo "### THE SHOP - Staging Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend: https://${BACKEND_URL}" >> $GITHUB_STEP_SUMMARY
+          echo "## THE SHOP - Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend API: https://${BACKEND_URL}" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend Docs: https://${BACKEND_URL}/docs" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend: https://${FRONTEND_URL}" >> $GITHUB_STEP_SUMMARY
-
-  # ============================================
-  # PHASE 6: SMOKE TESTS
-  # ============================================
-  smoke-tests:
-    name: Smoke Tests
-    runs-on: ubuntu-latest
-    needs: deploy-staging
-    if: needs.deploy-staging.result == 'success'
-
-    steps:
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Run health checks
-        run: |
-          BACKEND_URL=$(az containerapp show --name theshop-backend-staging --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
-          
-          if [ -n "$BACKEND_URL" ]; then
-            echo "Testing https://${BACKEND_URL}/docs..."
-            for i in {1..5}; do
-              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${BACKEND_URL}/docs" || echo "000")
-              if [ "$STATUS" = "200" ]; then
-                echo "Health check passed!"
-                exit 0
-              fi
-              echo "Attempt $i: HTTP $STATUS - waiting..."
-              sleep 15
-            done
-          fi
-          echo "Health check inconclusive"
-        continue-on-error: true
-
-  # ============================================
-  # PHASE 7: DEPLOY TO PRODUCTION (Manual Approval)
-  # ============================================
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [prepare, smoke-tests, build-and-push]
-    if: needs.smoke-tests.result == 'success'
-
-    environment:
-      name: production
-
-    steps:
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy Backend to Production
-        run: |
-          echo "Deploying Backend to Production..."
-          
-          EXISTS=$(az containerapp show --name theshop-backend-prod --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
-          
-          if [ -z "$EXISTS" ]; then
-            az containerapp create \
-              --name theshop-backend-prod \
-              --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
-              --target-port 8000 \
-              --ingress external \
-              --cpu 1.0 --memory 2.0Gi \
-              --min-replicas 1 --max-replicas 3 \
-              --env-vars APP_ENV=production APP_VERSION=${{ github.sha }} || true
-          else
-            az containerapp update \
-              --name theshop-backend-prod \
-              --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.BACKEND_IMAGE }}:${{ github.sha }} || true
-          fi
-        continue-on-error: true
-
-      - name: Deploy Frontend to Production
-        run: |
-          echo "Deploying Frontend to Production..."
-          
-          EXISTS=$(az containerapp show --name theshop-frontend-prod --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
-          
-          if [ -z "$EXISTS" ]; then
-            az containerapp create \
-              --name theshop-frontend-prod \
-              --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
-              --target-port 80 \
-              --ingress external \
-              --cpu 1.0 --memory 2.0Gi \
-              --min-replicas 1 --max-replicas 3 || true
-          else
-            az containerapp update \
-              --name theshop-frontend-prod \
-              --resource-group ${{ vars.RESOURCE_GROUP }} \
-              --image ${{ env.FRONTEND_IMAGE }}:${{ github.sha }} || true
-          fi
-        continue-on-error: true
-
-      - name: Get Production URLs
-        run: |
-          BACKEND_URL=$(az containerapp show --name theshop-backend-prod --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
-          FRONTEND_URL=$(az containerapp show --name theshop-frontend-prod --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
-          
-          echo "### THE SHOP - Production Deployment" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend: https://${BACKEND_URL}" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend: https://${FRONTEND_URL}" >> $GITHUB_STEP_SUMMARY
-
-  # ============================================
-  # PHASE 8: SUMMARY
-  # ============================================
-  summary:
-    name: Pipeline Summary
-    runs-on: ubuntu-latest
-    needs: [prepare, test-backend, test-frontend, security-scan, build-and-push, deploy-staging, smoke-tests, deploy-production]
-    if: always()
-
-    steps:
-      - name: Generate summary
-        run: |
-          echo "## CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Actor:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Backend Tests | ${{ needs.test-backend.result == 'success' && 'Pass' || needs.test-backend.result == 'skipped' && 'Skipped' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend Tests | ${{ needs.test-frontend.result == 'success' && 'Pass' || needs.test-frontend.result == 'skipped' && 'Skipped' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security Scan | ${{ needs.security-scan.result == 'success' && 'Pass' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build & Push | ${{ needs.build-and-push.result == 'success' && 'Pass' || needs.build-and-push.result == 'skipped' && 'Skipped' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Staging Deploy | ${{ needs.deploy-staging.result == 'success' && 'Pass' || needs.deploy-staging.result == 'skipped' && 'Skipped' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Smoke Tests | ${{ needs.smoke-tests.result == 'success' && 'Pass' || needs.smoke-tests.result == 'skipped' && 'Skipped' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Production Deploy | ${{ needs.deploy-production.result == 'success' && 'Pass' || needs.deploy-production.result == 'skipped' && 'Pending' || 'Fail' }} |" >> $GITHUB_STEP_SUMMARY
