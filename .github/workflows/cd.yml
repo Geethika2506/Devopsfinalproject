@@ -298,12 +298,12 @@ jobs:
           echo "Deploying Backend to Staging..."
           
           # Check if container app exists
-          EXISTS=$(az containerapp show --name devops-backend-staging --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
+          EXISTS=$(az containerapp show --name theshop-backend-staging --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
           
           if [ -z "$EXISTS" ]; then
             echo "Creating new container app..."
             az containerapp create \
-              --name devops-backend-staging \
+              --name theshop-backend-staging \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
               --image ${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
               --target-port 8000 \
@@ -313,7 +313,7 @@ jobs:
           else
             echo "Updating existing container app..."
             az containerapp update \
-              --name devops-backend-staging \
+              --name theshop-backend-staging \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
               --image ${{ env.BACKEND_IMAGE }}:${{ github.sha }} || true
           fi
@@ -323,11 +323,11 @@ jobs:
         run: |
           echo "Deploying Frontend to Staging..."
           
-          EXISTS=$(az containerapp show --name devops-frontend-staging --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
+          EXISTS=$(az containerapp show --name theshop-frontend-staging --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
           
           if [ -z "$EXISTS" ]; then
             az containerapp create \
-              --name devops-frontend-staging \
+              --name theshop-frontend-staging \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
               --image ${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
               --target-port 80 \
@@ -335,7 +335,7 @@ jobs:
               --cpu 0.5 --memory 1.0Gi || true
           else
             az containerapp update \
-              --name devops-frontend-staging \
+              --name theshop-frontend-staging \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
               --image ${{ env.FRONTEND_IMAGE }}:${{ github.sha }} || true
           fi
@@ -343,10 +343,10 @@ jobs:
 
       - name: Get Staging URLs
         run: |
-          BACKEND_URL=$(az containerapp show --name devops-backend-staging --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
-          FRONTEND_URL=$(az containerapp show --name devops-frontend-staging --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
+          BACKEND_URL=$(az containerapp show --name theshop-backend-staging --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
+          FRONTEND_URL=$(az containerapp show --name theshop-frontend-staging --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
           
-          echo "### Staging Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "### THE SHOP - Staging Deployment" >> $GITHUB_STEP_SUMMARY
           echo "- Backend: https://${BACKEND_URL}" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend: https://${FRONTEND_URL}" >> $GITHUB_STEP_SUMMARY
 
@@ -367,7 +367,7 @@ jobs:
 
       - name: Run health checks
         run: |
-          BACKEND_URL=$(az containerapp show --name devops-backend-staging --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
+          BACKEND_URL=$(az containerapp show --name theshop-backend-staging --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
           
           if [ -n "$BACKEND_URL" ]; then
             echo "Testing https://${BACKEND_URL}/docs..."
@@ -406,11 +406,11 @@ jobs:
         run: |
           echo "Deploying Backend to Production..."
           
-          EXISTS=$(az containerapp show --name devops-backend-prod --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
+          EXISTS=$(az containerapp show --name theshop-backend-prod --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
           
           if [ -z "$EXISTS" ]; then
             az containerapp create \
-              --name devops-backend-prod \
+              --name theshop-backend-prod \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
               --image ${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
               --target-port 8000 \
@@ -420,7 +420,7 @@ jobs:
               --env-vars APP_ENV=production APP_VERSION=${{ github.sha }} || true
           else
             az containerapp update \
-              --name devops-backend-prod \
+              --name theshop-backend-prod \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
               --image ${{ env.BACKEND_IMAGE }}:${{ github.sha }} || true
           fi
@@ -430,11 +430,11 @@ jobs:
         run: |
           echo "Deploying Frontend to Production..."
           
-          EXISTS=$(az containerapp show --name devops-frontend-prod --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
+          EXISTS=$(az containerapp show --name theshop-frontend-prod --resource-group ${{ vars.RESOURCE_GROUP }} 2>/dev/null || echo "")
           
           if [ -z "$EXISTS" ]; then
             az containerapp create \
-              --name devops-frontend-prod \
+              --name theshop-frontend-prod \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
               --image ${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
               --target-port 80 \
@@ -443,7 +443,7 @@ jobs:
               --min-replicas 1 --max-replicas 3 || true
           else
             az containerapp update \
-              --name devops-frontend-prod \
+              --name theshop-frontend-prod \
               --resource-group ${{ vars.RESOURCE_GROUP }} \
               --image ${{ env.FRONTEND_IMAGE }}:${{ github.sha }} || true
           fi
@@ -451,10 +451,10 @@ jobs:
 
       - name: Get Production URLs
         run: |
-          BACKEND_URL=$(az containerapp show --name devops-backend-prod --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
-          FRONTEND_URL=$(az containerapp show --name devops-frontend-prod --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
+          BACKEND_URL=$(az containerapp show --name theshop-backend-prod --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
+          FRONTEND_URL=$(az containerapp show --name theshop-frontend-prod --resource-group ${{ vars.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "pending")
           
-          echo "### Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "### THE SHOP - Production Deployment" >> $GITHUB_STEP_SUMMARY
           echo "- Backend: https://${BACKEND_URL}" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend: https://${FRONTEND_URL}" >> $GITHUB_STEP_SUMMARY
 
