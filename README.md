@@ -18,24 +18,25 @@ Full-stack e-commerce application with FastAPI backend, React frontend, and JWT 
 - Git
 
 ### 1. Backend Setup (Terminal 1)
-```bash
-# Navigate to project root
-cd c:\Users\Meher\Desktop\yeartwo\Devopsfinalproject
 
-# Create virtual environment
+**Windows:**
+```powershell
+cd c:\Users\YourName\Devopsfinalproject
 python -m venv .venv
-
-# Activate virtual environment (Windows)
 .venv\Scripts\activate
-
-# Install dependencies
 pip install -r requirement.txt
+python backend/seed.py
+uvicorn backend.main:app --host 127.0.0.1 --port 8000
+```
 
-# Seed database with sample products
-python Backend/seed.py
-
-# Start backend server (keep this terminal running)
-.venv\Scripts\python.exe -m uvicorn Backend.main:app --host 127.0.0.1 --port 8000
+**macOS/Linux:**
+```bash
+cd /path/to/DevOpsFinalProject
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirement.txt
+python backend/seed.py
+uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
 Backend will be available at: **http://127.0.0.1:8000**
