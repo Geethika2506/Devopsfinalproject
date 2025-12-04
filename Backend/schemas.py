@@ -127,3 +127,54 @@ class OrderResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+# Wishlist schemas
+class WishlistItemCreate(BaseModel):
+    product_id: int
+
+
+class WishlistItemResponse(BaseModel):
+    id: int
+    product_id: int
+    created_at: datetime
+    product: ProductResponse
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class WishlistResponse(BaseModel):
+    items: List[WishlistItemResponse]
+    count: int
+
+
+# Review schemas
+class ReviewBase(BaseModel):
+    rating: int = Field(..., ge=1, le=5, description="Rating from 1 to 5 stars")
+    comment: Optional[str] = Field(None, max_length=1000)
+
+
+class ReviewCreate(ReviewBase):
+    product_id: int
+
+
+class ReviewUpdate(BaseModel):
+    rating: Optional[int] = Field(None, ge=1, le=5)
+    comment: Optional[str] = Field(None, max_length=1000)
+
+
+class ReviewResponse(ReviewBase):
+    id: int
+    user_id: int
+    product_id: int
+    created_at: datetime
+    user: Optional[UserResponse] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ProductReviewsResponse(BaseModel):
+    product_id: int
+    average_rating: float
+    total_reviews: int
+    reviews: List[ReviewResponse]
+

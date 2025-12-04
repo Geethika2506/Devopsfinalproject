@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import products, cart, orders, users, auth
+from routers import products, cart, orders, users, auth, wishlist, reviews
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -34,6 +34,8 @@ app.include_router(products.router)
 app.include_router(cart.router)
 app.include_router(orders.router)
 app.include_router(users.router)
+app.include_router(wishlist.router)
+app.include_router(reviews.router)
 
 
 @app.get("/")
