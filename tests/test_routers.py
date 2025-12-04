@@ -1,5 +1,10 @@
 """Tests for API router endpoints."""
 import pytest
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'Backend'))
+
+from auth import create_access_token
 
 
 class TestAuthRouter:
@@ -321,10 +326,13 @@ class TestOrdersRouter:
 
     def test_create_order(self, client, test_user, test_product):
         """Test creating an order."""
+        token = create_access_token({"sub": str(test_user.id)})
+        headers = {"Authorization": f"Bearer {token}"}
+        
         response = client.post(
             "/orders/",
             json={"items": [{"product_id": test_product.id, "quantity": 2}]},
-            headers={"X-User-ID": str(test_user.id)}
+            headers=headers
         )
         
         assert response.status_code == 201
@@ -334,16 +342,19 @@ class TestOrdersRouter:
 
     def test_list_orders(self, client, test_user, test_product):
         """Test listing user orders."""
+        token = create_access_token({"sub": str(test_user.id)})
+        headers = {"Authorization": f"Bearer {token}"}
+        
         # Create an order first
         client.post(
             "/orders/",
             json={"items": [{"product_id": test_product.id, "quantity": 1}]},
-            headers={"X-User-ID": str(test_user.id)}
+            headers=headers
         )
         
         response = client.get(
             "/orders/",
-            headers={"X-User-ID": str(test_user.id)}
+            headers=headers
         )
         
         assert response.status_code == 200
@@ -352,17 +363,20 @@ class TestOrdersRouter:
 
     def test_get_order(self, client, test_user, test_product):
         """Test getting a specific order."""
+        token = create_access_token({"sub": str(test_user.id)})
+        headers = {"Authorization": f"Bearer {token}"}
+        
         # Create an order first
         create_response = client.post(
             "/orders/",
             json={"items": [{"product_id": test_product.id, "quantity": 1}]},
-            headers={"X-User-ID": str(test_user.id)}
+            headers=headers
         )
         order_id = create_response.json()["id"]
         
         response = client.get(
             f"/orders/{order_id}",
-            headers={"X-User-ID": str(test_user.id)}
+            headers=headers
         )
         
         assert response.status_code == 200

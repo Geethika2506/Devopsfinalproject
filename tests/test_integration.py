@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'Backend'))
 
 import pytest
 import models
-from auth import get_password_hash
+from auth import get_password_hash, create_access_token
 
 
 class TestUserJourney:
@@ -74,14 +74,14 @@ class TestUserJourney:
         expected_total = 999.99 + (29.99 * 2)
         assert abs(cart["total"] - expected_total) < 0.01
         
-        # 8. Create order
+        # 8. Create order (use JWT auth)
         order_response = client.post(
             "/orders/",
             json={"items": [
                 {"product_id": product1["id"], "quantity": 1},
                 {"product_id": product2["id"], "quantity": 2}
             ]},
-            headers={"X-User-ID": str(user_id)}
+            headers=auth_headers
         )
         assert order_response.status_code == 201
         order = order_response.json()
@@ -89,7 +89,7 @@ class TestUserJourney:
         assert abs(order["total"] - expected_total) < 0.01
         
         # 9. View order history
-        orders_response = client.get("/orders/", headers={"X-User-ID": str(user_id)})
+        orders_response = client.get("/orders/", headers=auth_headers)
         assert orders_response.status_code == 200
         assert len(orders_response.json()) >= 1
 
@@ -270,24 +270,25 @@ class TestConcurrentOperations:
 
     def test_multiple_orders_same_user(self, client, test_user, multiple_products):
         """Test user can create multiple orders."""
-        user_headers = {"X-User-ID": str(test_user.id)}
+        token = create_access_token({"sub": str(test_user.id)})
+        auth_headers = {"Authorization": f"Bearer {token}"}
         
         # Create first order
         order1 = client.post(
             "/orders/",
             json={"items": [{"product_id": multiple_products[0].id, "quantity": 1}]},
-            headers=user_headers
+            headers=auth_headers
         ).json()
         
         # Create second order
         order2 = client.post(
             "/orders/",
             json={"items": [{"product_id": multiple_products[1].id, "quantity": 2}]},
-            headers=user_headers
+            headers=auth_headers
         ).json()
         
         # Verify both orders exist
-        orders = client.get("/orders/", headers=user_headers).json()
+        orders = client.get("/orders/", headers=auth_headers).json()
         assert len(orders) >= 2
         
         order_ids = [o["id"] for o in orders]
@@ -300,10 +301,13 @@ class TestEdgeCases:
 
     def test_order_nonexistent_product(self, client, test_user):
         """Test ordering a non-existent product."""
+        token = create_access_token({"sub": str(test_user.id)})
+        auth_headers = {"Authorization": f"Bearer {token}"}
+        
         response = client.post(
             "/orders/",
             json={"items": [{"product_id": 99999, "quantity": 1}]},
-            headers={"X-User-ID": str(test_user.id)}
+            headers=auth_headers
         )
         # Should handle gracefully (may return error or skip item)
         # The exact behavior depends on implementation
