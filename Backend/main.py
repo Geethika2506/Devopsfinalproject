@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 from routers import products, cart, orders, users, auth, wishlist, reviews, uploads
+from metrics import PrometheusMiddleware, get_metrics
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -18,6 +19,9 @@ app = FastAPI(
     description="A simple e-commerce REST API for DevOps demo",
     version="1.0.0"
 )
+
+# Add Prometheus metrics middleware
+app.add_middleware(PrometheusMiddleware)
 
 # CORS middleware for frontend
 app.add_middleware(
@@ -58,3 +62,9 @@ def home():
 def health_check():
     """Health check endpoint for monitoring."""
     return {"status": "healthy", "service": "online-store-api"}
+
+
+@app.get("/metrics")
+def metrics():
+    """Prometheus metrics endpoint."""
+    return get_metrics()
