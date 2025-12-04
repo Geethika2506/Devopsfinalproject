@@ -19,9 +19,9 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # FastAPI Backend
+  # FastAPI Backend (host.docker.internal for Windows Docker)
   - job_name: 'fastapi-backend'
     static_configs:
-      - targets: ['backend:8000']
+      - targets: ['host.docker.internal:8000']
     metrics_path: /metrics
     scrape_interval: 10s
