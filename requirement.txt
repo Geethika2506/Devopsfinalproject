@@ -20,3 +20,4 @@ httpx==0.26.0
 # Azure/Production
 pyodbc==5.3.0
 requests==2.31.0
+azure-storage-blob==12.19.0

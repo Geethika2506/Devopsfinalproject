@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import products, cart, orders, users, auth, wishlist, reviews
+from routers import products, cart, orders, users, auth, wishlist, reviews, uploads
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -22,7 +22,16 @@ app = FastAPI(
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:5176",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175",
+        "http://127.0.0.1:5176",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,6 +45,7 @@ app.include_router(orders.router)
 app.include_router(users.router)
 app.include_router(wishlist.router)
 app.include_router(reviews.router)
+app.include_router(uploads.router)
 
 
 @app.get("/")

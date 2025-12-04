@@ -1,2 +1,2 @@
 """Routers package."""
-from . import products, cart, orders, users, auth, wishlist, reviews
+from . import products, cart, orders, users, auth, wishlist, reviews, uploads
