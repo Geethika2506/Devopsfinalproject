@@ -1,3 +1,9 @@
+# Health check endpoint for Render
+from fastapi import APIRouter
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok"}
 """FastAPI main application."""
 import sys
 import os
