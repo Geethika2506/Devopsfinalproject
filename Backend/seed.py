@@ -8,14 +8,14 @@ sys.path.insert(0, os.path.dirname(__file__))
 from database import SessionLocal, engine, Base
 from models import Product
 
-# Sample products data (fallback when API is unavailable)
+# Sample products data with reliable placeholder images
 SAMPLE_PRODUCTS = [
     {
         "title": "Fjallraven Backpack",
         "price": 109.95,
         "description": "Your perfect pack for everyday use and walks in the forest. Stash your laptop (up to 15 inches) in the padded sleeve.",
         "category": "men's clothing",
-        "image": "https://fakestoreapi.com/img/81fPKd-2AYL._AC_SL1500_.jpg",
+        "image": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400",
         "rating": {"rate": 3.9, "count": 120}
     },
     {
@@ -23,7 +23,7 @@ SAMPLE_PRODUCTS = [
         "price": 22.30,
         "description": "Slim-fitting style, contrast raglan long sleeve, lightweight & soft fabric for comfortable wearing.",
         "category": "men's clothing",
-        "image": "https://fakestoreapi.com/img/71-3HjGNDUL._AC_SY879._SX._UX._SY._UY_.jpg",
+        "image": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400",
         "rating": {"rate": 4.1, "count": 259}
     },
     {
@@ -31,15 +31,15 @@ SAMPLE_PRODUCTS = [
         "price": 55.99,
         "description": "Great outance comfortable wearing and target, perfect for daily use.",
         "category": "men's clothing",
-        "image": "https://fakestoreapi.com/img/71li-ujtlUL._AC_UX679_.jpg",
+        "image": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400",
         "rating": {"rate": 4.7, "count": 500}
     },
     {
         "title": "Women's 3-in-1 Snowboard Jacket",
         "price": 56.99,
-        "description": "Perfect for outdoor activities. Note: The Alarm Clock display has been removed.",
+        "description": "Perfect for outdoor activities. Warm and comfortable.",
         "category": "women's clothing",
-        "image": "https://fakestoreapi.com/img/51Y5NI-I5jL._AC_UX679_.jpg",
+        "image": "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=400",
         "rating": {"rate": 2.6, "count": 235}
     },
     {
@@ -47,7 +47,7 @@ SAMPLE_PRODUCTS = [
         "price": 168.00,
         "description": "Classic Created Wedding Engagement Solitaire Diamond Promise Ring for Her.",
         "category": "jewelery",
-        "image": "https://fakestoreapi.com/img/71YAIFU48IL._AC_UL640_QL65_ML3_.jpg",
+        "image": "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400",
         "rating": {"rate": 3.9, "count": 70}
     },
     {
@@ -55,7 +55,7 @@ SAMPLE_PRODUCTS = [
         "price": 695.00,
         "description": "Satisfaction Guaranteed. Return or exchange any order within 30 days.",
         "category": "jewelery",
-        "image": "https://fakestoreapi.com/img/61sbMiUnoGL._AC_UL640_QL65_ML3_.jpg",
+        "image": "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400",
         "rating": {"rate": 4.6, "count": 400}
     },
     {
@@ -63,7 +63,7 @@ SAMPLE_PRODUCTS = [
         "price": 64.00,
         "description": "USB 3.0 and USB 2.0 Compatibility. Fast data transfers. Improve lag time.",
         "category": "electronics",
-        "image": "https://fakestoreapi.com/img/61IBBVJvSDL._AC_SY879_.jpg",
+        "image": "https://images.unsplash.com/photo-1531492746076-161ca9bcad58?w=400",
         "rating": {"rate": 3.3, "count": 203}
     },
     {
@@ -71,7 +71,7 @@ SAMPLE_PRODUCTS = [
         "price": 109.00,
         "description": "Easy upgrade for faster boot up, shutdown, application load and response.",
         "category": "electronics",
-        "image": "https://fakestoreapi.com/img/61U7T1koQqL._AC_SX679_.jpg",
+        "image": "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=400",
         "rating": {"rate": 2.9, "count": 470}
     },
     {
@@ -79,7 +79,7 @@ SAMPLE_PRODUCTS = [
         "price": 109.00,
         "description": "3D NAND flash are applied to deliver high performance.",
         "category": "electronics",
-        "image": "https://fakestoreapi.com/img/71kWymZ+c+L._AC_SX679_.jpg",
+        "image": "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400",
         "rating": {"rate": 4.8, "count": 319}
     },
     {
@@ -87,7 +87,7 @@ SAMPLE_PRODUCTS = [
         "price": 114.00,
         "description": "Expand your PS4 gaming experience. Play any game from your drive.",
         "category": "electronics",
-        "image": "https://fakestoreapi.com/img/61mtL65D4cL._AC_SX679_.jpg",
+        "image": "https://images.unsplash.com/photo-1625961332771-3f40b0e2bdcf?w=400",
         "rating": {"rate": 4.8, "count": 400}
     },
     {
@@ -95,7 +95,7 @@ SAMPLE_PRODUCTS = [
         "price": 599.00,
         "description": "21.5 inch Full HD widescreen IPS display with AMD Free Sync technology.",
         "category": "electronics",
-        "image": "https://fakestoreapi.com/img/81QpkIctqPL._AC_SX679_.jpg",
+        "image": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400",
         "rating": {"rate": 2.9, "count": 250}
     },
     {
@@ -103,7 +103,7 @@ SAMPLE_PRODUCTS = [
         "price": 999.99,
         "description": "49 Inch Super Ultrawide Dual QHD curved monitor with Quantum Dot technology.",
         "category": "electronics",
-        "image": "https://fakestoreapi.com/img/81Zt42ioCgL._AC_SX679_.jpg",
+        "image": "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=400",
         "rating": {"rate": 2.2, "count": 140}
     },
     {
@@ -111,7 +111,7 @@ SAMPLE_PRODUCTS = [
         "price": 29.95,
         "description": "Military style parka jacket with removable hood.",
         "category": "women's clothing",
-        "image": "https://fakestoreapi.com/img/51eg55uWmdL._AC_UX679_.jpg",
+        "image": "https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=400",
         "rating": {"rate": 3.6, "count": 235}
     },
     {
@@ -119,7 +119,7 @@ SAMPLE_PRODUCTS = [
         "price": 39.99,
         "description": "Lightweight, perfect for trip or hiking.",
         "category": "women's clothing",
-        "image": "https://fakestoreapi.com/img/71HblAHs5xL._AC_UY879_-2.jpg",
+        "image": "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400",
         "rating": {"rate": 3.8, "count": 679}
     },
     {
@@ -127,7 +127,7 @@ SAMPLE_PRODUCTS = [
         "price": 9.85,
         "description": "Made in USA. Super soft and lightweight.",
         "category": "women's clothing",
-        "image": "https://fakestoreapi.com/img/71z3kpMAYsL._AC_UY879_.jpg",
+        "image": "https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=400",
         "rating": {"rate": 4.7, "count": 130}
     },
     {
@@ -135,7 +135,7 @@ SAMPLE_PRODUCTS = [
         "price": 7.95,
         "description": "100% Polyester. Machine wash. Lightweight breathable fabric.",
         "category": "women's clothing",
-        "image": "https://fakestoreapi.com/img/51eg55uWmdL._AC_UX679_.jpg",
+        "image": "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=400",
         "rating": {"rate": 4.5, "count": 146}
     }
 ]
@@ -149,6 +149,13 @@ def seed_products():
     db = SessionLocal()
     
     try:
+        # Clear existing products first to update images
+        existing_count = db.query(Product).count()
+        if existing_count > 0:
+            print(f"Clearing {existing_count} existing products...")
+            db.query(Product).delete()
+            db.commit()
+        
         print("Seeding products from sample data...")
         
         for item in SAMPLE_PRODUCTS:
