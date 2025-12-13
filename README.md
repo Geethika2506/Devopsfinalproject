@@ -1,14 +1,17 @@
 # Online Store - DevOps Final Project
 
+## 🚀 Live Demo
+**[https://the-shop-app.onrender.com](https://the-shop-app.onrender.com)**
+
 ## Overview
-Full-stack e-commerce application with FastAPI backend, React frontend, and JWT authentication. Features user authentication, product browsing, shopping cart, and order management.
+Full-stack e-commerce application with FastAPI backend, React frontend, and JWT authentication. Features user authentication, product browsing, shopping cart, wishlist, reviews, and order management.
 
 ## Tech Stack
-- **Backend:** FastAPI, SQLAlchemy, SQLite (local) / Azure SQL (prod)
+- **Backend:** FastAPI, SQLAlchemy, SQLite
 - **Frontend:** React + Vite
 - **Auth:** JWT tokens with Argon2 password hashing
-- **Database:** SQLite (local development)
-- **Infrastructure:** Docker, Azure Container Registry, Azure App Service
+- **Deployment:** Render (Docker)
+- **CI/CD:** GitHub Actions
 
 ## Quick Start
 
@@ -98,63 +101,101 @@ Frontend will be available at: **http://localhost:5173**
 - ✅ Shopping cart management
 - ✅ Order placement
 - ✅ Responsive UI
-- ✅ 20 sample products pre-seeded from FakeStoreAPI
+- ✅ 16 sample products with images
 
 ### 5. Stopping the Servers
 Press `Ctrl+C` in each terminal to stop the servers.
 
-**Windows - Kill by Process:**
-```powershell
-# Kill backend (Python)
-taskkill /F /IM python.exe
-
-# Kill frontend (Node)
-taskkill /F /IM node.exe
-```## API Endpoints
+## API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/auth/register` | POST | Register new user |
-| `/auth/login/json` | POST | Login (returns JWT) |
-| `/auth/me` | GET | Get current user (requires auth) |
-| `/products/` | GET | List products (optional: `?category=`) |
-| `/products/categories` | GET | List categories |
-| `/cart/` | GET/POST | View/add to cart |
-| `/orders/` | GET/POST | View/create orders |
+| `/api/health` | GET | Health check |
+| `/api/auth/register` | POST | Register new user |
+| `/api/auth/login/json` | POST | Login (returns JWT) |
+| `/api/auth/me` | GET | Get current user (requires auth) |
+| `/api/products/` | GET | List products (optional: `?category=`) |
+| `/api/products/categories` | GET | List categories |
+| `/api/cart/` | GET/POST | View/add to cart |
+| `/api/orders/` | GET/POST | View/create orders |
+| `/api/wishlist/` | GET/POST | View/manage wishlist |
+| `/api/reviews/` | GET/POST | Product reviews |
 
 ## Features
 - ✅ User registration & login with email/password
 - ✅ JWT-based authentication
 - ✅ Product catalog with category filters
 - ✅ Shopping cart functionality
+- ✅ Wishlist management
+- ✅ Product reviews & ratings
 - ✅ Order placement
 - ✅ Responsive React UI
 
-## CI/CD (Azure DevOps)
-Pipeline in `azure-pipelines.yml`:
-1. Install dependencies & run tests
-2. Build Docker image
-3. Push to Azure Container Registry
-4. Deploy to Azure App Service
+## CI/CD Pipeline
+GitHub Actions workflow (`.github/workflows/`):
+1. Run tests with pytest
+2. Build Docker image (multi-stage: Node.js + Python)
+3. Deploy to Render automatically
 
-## Azure Setup
-Run `create-azure-resources.sh` to provision:
-- Azure Container Registry
-- Azure App Service
-- Azure SQL Database (optional)
-- Application Insights
+## Deployment
+The app is deployed on **Render** using Docker:
+- Frontend and backend served from single container
+- Database seeded automatically on startup
+- Auto-deploy on push to `cd-pipeline` branch
 
 ## Environment Variables
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | Database connection string |
 | `SECRET_KEY` | JWT signing key |
-| `APPINSIGHTS_INSTRUMENTATIONKEY` | Azure monitoring |
+| `PORT` | Server port (set by Render) |
 
 ## Testing
 ```bash
 source .venv/bin/activate
-python -m pytest tests/tests_api.py -v
+python -m pytest tests/ -v --cov=Backend
+```
+
+## Project Structure
+```
+├── Backend/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI app entry point
+│   ├── models.py            # SQLAlchemy database models
+│   ├── schemas.py           # Pydantic validation schemas
+│   ├── crud.py              # Database CRUD operations
+│   ├── database.py          # Database connection setup
+│   ├── auth.py              # JWT authentication logic
+│   ├── seed.py              # Database seeding script
+│   └── routers/
+│       ├── __init__.py
+│       ├── auth.py          # Auth endpoints (/auth)
+│       ├── products.py      # Product endpoints (/products)
+│       ├── cart.py          # Cart endpoints (/cart)
+│       ├── orders.py        # Order endpoints (/orders)
+│       ├── users.py         # User endpoints (/users)
+│       ├── wishlist.py      # Wishlist endpoints (/wishlist)
+│       └── reviews.py       # Review endpoints (/reviews)
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx          # Main React application
+│   │   └── main.jsx         # React entry point
+│   ├── package.json
+│   └── Dockerfile
+├── tests/
+│   ├── conftest.py          # Pytest fixtures
+│   ├── test_auth.py         # Authentication tests
+│   ├── test_crud.py         # CRUD operation tests
+│   ├── test_database.py     # Database tests
+│   ├── test_models.py       # Model tests
+│   ├── test_routers.py      # API endpoint tests
+│   ├── test_features.py     # Wishlist & review tests
+│   └── test_integration.py  # Integration tests
+├── .github/workflows/
+│   └── cd-pipeline_the-shop-app.yml  # CI/CD pipeline
+├── Dockerfile               # Multi-stage Docker build
+├── docker-compose.yml       # Local development
+├── requirements.txt         # Python dependencies
+└── README.md
 ```
 
