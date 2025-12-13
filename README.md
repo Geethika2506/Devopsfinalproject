@@ -63,7 +63,7 @@ docker-compose down
 cd Devopsfinalproject
 python -m venv .venv
 .\.venv\Scripts\activate
-pip install -r requirement.txt
+pip install -r requirements.txt
 cd backend
 python seed.py
 python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -74,7 +74,7 @@ python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd Devopsfinalproject
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirement.txt
+pip install -r requirements.txt
 cd backend
 python seed.py
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -188,8 +188,8 @@ Devopsfinalproject/
 │   └── vite.config.js
 ├── tests/                # Test suite (177 tests)
 ├── docker-compose.yml
-├── dockerfile
-├── requirement.txt
+├── Dockerfile
+├── requirements.txt
 └── README.md
 ```
 
