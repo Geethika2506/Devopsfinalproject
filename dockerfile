@@ -38,5 +38,8 @@ EXPOSE 10000
 ENV DATABASE_URL=sqlite:///./store.db
 ENV PORT=10000
 
-# Start command - Render sets PORT env var
-CMD uvicorn Backend.main:app --host 0.0.0.0 --port ${PORT:-10000}
+# Create startup script that seeds DB then starts server
+RUN echo '#!/bin/bash\npython -m Backend.seed\nuvicorn Backend.main:app --host 0.0.0.0 --port ${PORT:-10000}' > /app/start.sh && chmod +x /app/start.sh
+
+# Start command - seeds database then starts uvicorn
+CMD ["/bin/bash", "/app/start.sh"]
