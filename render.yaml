@@ -4,15 +4,8 @@
 services:
   - type: web
     name: the-shop-api
-    runtime: python
-    buildCommand: |
-      pip install -r requirements.txt
-      cd frontend && npm install && npm run build
-    startCommand: uvicorn Backend.main:app --host 0.0.0.0 --port $PORT
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.11"
-      - key: NODE_VERSION
-        value: "18"
       - key: DATABASE_URL
         sync: false  # Set this in Render dashboard
