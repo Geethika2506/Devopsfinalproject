@@ -31,15 +31,16 @@ COPY Backend/ ./Backend/
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
+# Copy startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 # Expose port
 EXPOSE 10000
 
 # Environment variables
 ENV DATABASE_URL=sqlite:///./store.db
 ENV PORT=10000
-
-# Create startup script that seeds DB then starts server
-RUN echo '#!/bin/bash\npython -m Backend.seed\nuvicorn Backend.main:app --host 0.0.0.0 --port ${PORT:-10000}' > /app/start.sh && chmod +x /app/start.sh
 
 # Start command - seeds database then starts uvicorn
 CMD ["/bin/bash", "/app/start.sh"]
