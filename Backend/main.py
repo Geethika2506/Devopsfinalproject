@@ -60,15 +60,15 @@ app.include_router(wishlist.router)
 app.include_router(reviews.router)
 
 
-@app.get("/")
-def home():
-    """Root endpoint."""
-    return {"message": "Online Store API running!"}
-
-
 @app.get("/health")
 def health_check():
     """Health check endpoint for monitoring."""
+    return {"status": "healthy", "service": "online-store-api"}
+
+
+@app.get("/api/health")
+def api_health_check():
+    """API Health check endpoint."""
     return {"status": "healthy", "service": "online-store-api"}
 
 
@@ -80,12 +80,24 @@ if frontend_dist.exists():
     # Serve static assets (js, css, images)
     app.mount("/assets", StaticFiles(directory=frontend_dist / "assets"), name="assets")
     
+    @app.get("/")
+    async def serve_index():
+        """Serve frontend index.html at root."""
+        return FileResponse(frontend_dist / "index.html")
+    
     @app.get("/{full_path:path}")
     async def serve_frontend(request: Request, full_path: str):
         """Serve frontend for all non-API routes."""
-        # If it's an API route, this won't match (routers are registered first)
+        # Skip API routes
+        if full_path.startswith("api/"):
+            return {"error": "Not found"}
         file_path = frontend_dist / full_path
         if file_path.exists() and file_path.is_file():
             return FileResponse(file_path)
         # Return index.html for SPA routing
         return FileResponse(frontend_dist / "index.html")
+else:
+    @app.get("/")
+    def home():
+        """Root endpoint when no frontend is built."""
+        return {"message": "Online Store API running!"}

@@ -387,11 +387,17 @@ class TestHealthEndpoints:
     """Test health check endpoints."""
 
     def test_root(self, client):
-        """Test root endpoint."""
+        """Test root endpoint - returns JSON or HTML depending on frontend build."""
         response = client.get("/")
         
         assert response.status_code == 200
-        assert "message" in response.json()
+        # Either JSON API response or HTML frontend
+        content_type = response.headers.get("content-type", "")
+        if "application/json" in content_type:
+            assert "message" in response.json()
+        else:
+            # Frontend is being served
+            assert "html" in content_type or "<!doctype html>" in response.text.lower()
 
     def test_health(self, client):
         """Test health endpoint."""
