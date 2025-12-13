@@ -1,9 +1,4 @@
 """FastAPI main application."""
-# /api/health endpoint for Render health check
-@app.get("/api/health")
-def api_health_check():
-    return {"status": "ok"}
-"""FastAPI main application."""
 import sys
 import os
 
